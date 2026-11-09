@@ -135,6 +135,14 @@ test('Độc phát hào 6; Thân-Kim gặp ngày/tháng Hợi → Nhật Hại, 
   assert.ok(r.notes.includes('Độc phát: hào 6'));
   assert.ok(r.lines[3].dayRel.includes('Nhật Hại') && r.lines[3].monthRel.includes('Nguyệt Hại'));
 });
+test('Quẻ lập bằng số / serial / thời gian: không có Độc phát (luôn 1 hào động theo công thức)', () => {
+  const x = I.analyze([7, 8, 8, 8, 7, 6], sample, { fixedMoving: true });
+  assert.equal(x.docPhat, null);
+  assert.ok(!x.notes.some((n) => /Độc phát/.test(n)));
+  const u = I.ungKy(x, sample, null, 2);
+  assert.ok(!u.items.some((it) => it.reasons.some((rr) => /Độc phát|độc phát/.test(rr.t))));
+  assert.equal(r.docPhat, 6); // gieo xu / tự chọn vẫn tính Độc phát
+});
 test('Bát Thuần Càn động hào 1, 5 → Tam hợp Thủy cục (Tử Tôn cục) với Thìn tĩnh', () => {
   const x = I.analyze([9, 7, 7, 7, 9, 7], sample);
   const full = x.combos.filter((c) => c.full);

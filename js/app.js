@@ -383,7 +383,8 @@
     const t = parseLocal(rec.t);
     const c = CAL.getInfo(t, { rollover23: rec.r !== 0 });
     const values = rec.v.split('').map(Number);
-    const res = I.analyze(values, c);
+    // Mai Hoa (serial / thời gian / số) luôn có đúng 1 hào động theo công thức → không xét Độc phát
+    const res = I.analyze(values, c, { fixedMoving: ['serial', 'time', 'number'].includes(rec.m) });
     const data = { question: rec.q || '', methodLabel: methodLabel(rec), cal: c, res, rec };
     state.current = data;
     state.dungKey = 'the';

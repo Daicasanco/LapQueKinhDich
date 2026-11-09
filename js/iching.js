@@ -406,7 +406,12 @@
   }
 
   /* ---------- Phân tích tổng ---------- */
-  function analyze(values, cal) {
+  /**
+   * opts.fixedMoving: quẻ lập bằng số / serial / thời gian (Mai Hoa) — luôn đúng một hào động
+   * theo công thức, nên không có khái niệm Độc phát.
+   */
+  function analyze(values, cal, opts) {
+    const o = opts || {};
     if (!Array.isArray(values) || values.length !== 6 || values.some((v) => ![6, 7, 8, 9].includes(v))) {
       throw new Error('Cần đúng 6 hào với giá trị 6/7/8/9');
     }
@@ -624,7 +629,8 @@
     if (ff.phanNgam) notes.push(ff.phanNgam);
     if (ff.haoPhanNgam.length) notes.push('Hào Phản Ngâm: hào ' + ff.haoPhanNgam.join(', '));
     if (!hasMoving) notes.push('Quẻ tĩnh (không có hào động)');
-    if (movingPos.length === 1) notes.push(`Độc phát: hào ${movingPos[0]}`);
+    const docPhat = movingPos.length === 1 && !o.fixedMoving ? movingPos[0] : null;
+    if (docPhat) notes.push(`Độc phát: hào ${docPhat}`);
     if (movingPos.length === 5) notes.push(`Độc tĩnh: hào ${[1, 2, 3, 4, 5, 6].find((p) => !movingPos.includes(p))}`);
     if (movingPos.length >= 4) notes.push('Loạn động (nhiều hào động)');
     if (movingPos.length === 6) notes.push('Sáu hào đều động');
@@ -634,6 +640,8 @@
 
     return {
       movingPos,
+      docPhat,
+      fixedMoving: !!o.fixedMoving,
       combos,
       hinhSets,
       tuyQuy,
@@ -941,7 +949,7 @@
     /* Dấu hiệu phụ (nhóm 5): Độc phát / Độc tĩnh, Tam hợp khuyết một chi, Tam hình */
     const mp = res.movingPos || [];
     const subjPos = (L || H).pos;
-    if (mp.length === 1 && mp[0] !== subjPos) {
+    if (res.docPhat && res.docPhat !== subjPos) {
       const o = res.lines[mp[0] - 1];
       add(o.branch, `Độc phát H${o.pos}: ngày / tháng ${N(o.branch)} (manh mối phụ)`, 5, 'phụ');
       if (o.changeTo) add(o.changeTo.branch, `Biến hào của độc phát H${o.pos}: ngày / tháng ${N(o.changeTo.branch)}`, 5, 'phụ');

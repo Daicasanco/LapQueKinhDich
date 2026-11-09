@@ -222,7 +222,7 @@
       else if (res.main.lucHop && res.changed.lucXung) out.push({ t: 'HỢP BIẾN XUNG' });
     }
     const mp = res.movingPos || [];
-    if (mp.length === 1) out.push({ t: 'ĐỘC PHÁT HÀO ' + mp[0] });
+    if (res.docPhat) out.push({ t: 'ĐỘC PHÁT HÀO ' + res.docPhat });
     if (mp.length === 6) out.push({ t: 'SÁU HÀO ĐỀU ĐỘNG' });
     else if (mp.length >= 4) out.push({ t: 'LOẠN ĐỘNG' });
     (res.combos || []).filter((c) => c.full).forEach((c) => out.push({ t: 'TAM HỢP ' + c.cuc.toUpperCase(), cls: 'cuc' }));
