@@ -639,3 +639,47 @@ input:focus-visible, select:focus-visible, button:focus-visible {
 @media print {
   .ins-svg, .hao-panel, .ins-hint { display: none !important; }
 }
+
+/* Ứng kỳ */
+.uk-table { min-width: 940px; }
+.uk-table tr.uk-uu-tien td { background: #f4faf5; }
+.uk-table tr.uk-canh-bao td { background: #fdf5f4; }
+.uk-profile { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 4px 14px; margin-bottom: 12px; }
+.uk-prow { display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.uk-prow:last-child { border-bottom: 0; }
+.uk-pk { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding-top: 2px; }
+.uk-lvl { font-weight: 700; }
+@media (max-width: 560px) { .uk-prow { grid-template-columns: 1fr; gap: 3px; } }
+.uk-legend { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; font-size: 12px; }
+.uk-rs { display: flex; flex-wrap: wrap; gap: 4px; }
+.uk-r { display: inline-block; font-size: 12px; line-height: 1.45; padding: 1px 8px; border-radius: 6px; border-left: 3px solid var(--rc, #b9ad9c); background: color-mix(in srgb, var(--rc, #b9ad9c) 10%, #fff); color: #3a322a; }
+.uk-r.ph-kq { --rc: #2c5ba8; }
+.uk-r.ph-tg { --rc: #8e44ad; }
+.uk-r.ph-tl { --rc: #2e9d48; }
+.uk-r.ph-kh { --rc: #1f7a6a; }
+.uk-r.ph-cb { --rc: #d7263d; }
+.uk-r.ph-phu { --rc: #a79c8d; color: var(--muted); }
+.uk-extras { margin: 10px 0 0; padding-left: 20px; font-size: 14px; }
+.uk-notes { margin-top: 12px; border-left: 3px solid var(--gold); background: #fffaf0; border-radius: 0 8px 8px 0; padding: 8px 12px; }
+.uk-notes ul { margin: 4px 0 0; padding-left: 18px; font-size: 13.5px; display: flex; flex-direction: column; gap: 3px; }
+.uk-chi {
+  display: inline-grid; place-items: center; min-width: 42px; height: 32px; padding: 0 8px; border-radius: 8px;
+  font-family: var(--serif); font-weight: 700; font-size: 16px; color: var(--c);
+  background: color-mix(in srgb, var(--c) 10%, #fff); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c) 45%, #fff);
+}
+.uk-links { display: flex; gap: 6px; }
+.uk-links a {
+  font-size: 12.5px; font-weight: 600; color: var(--accent-dark); text-decoration: none; white-space: nowrap;
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 10px; background: #fff;
+}
+.uk-links a:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+/* Hợp cục · Hình hại · Mộ · Phục thần */
+.cb-list { display: flex; flex-direction: column; }
+.cb-row { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.cb-row:last-child { border-bottom: 0; }
+.cb-k { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding-top: 2px; }
+.cb-v .chips { margin-top: 5px; }
+.cb-item + .cb-item { margin-top: 6px; }
+.mid-note.cuc { color: #6f1a6c; }
+@media (max-width: 560px) { .cb-row { grid-template-columns: 1fr; gap: 4px; } }

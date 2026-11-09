@@ -4,7 +4,7 @@
 (function (G) {
   'use strict';
   const LH = G.LH;
-  const { STEMS, BRANCHES, ELEMENTS, BRANCH_EL, STEM_EL, jdFromDate } = LH.cal;
+  const { STEMS, BRANCHES, ELEMENTS, BRANCH_EL, STEM_EL, jdFromDate, jdToDate } = LH.cal;
   const I = LH.iching;
 
   const esc = (s) =>
@@ -221,7 +221,13 @@
       if (res.main.lucXung && res.changed.lucHop) out.push({ t: 'XUNG BIẾN HỢP' });
       else if (res.main.lucHop && res.changed.lucXung) out.push({ t: 'HỢP BIẾN XUNG' });
     }
-    if (res.moving.filter(Boolean).length === 6) out.push({ t: 'SÁU HÀO ĐỀU ĐỘNG' });
+    const mp = res.movingPos || [];
+    if (mp.length === 1) out.push({ t: 'ĐỘC PHÁT HÀO ' + mp[0] });
+    if (mp.length === 6) out.push({ t: 'SÁU HÀO ĐỀU ĐỘNG' });
+    else if (mp.length >= 4) out.push({ t: 'LOẠN ĐỘNG' });
+    (res.combos || []).filter((c) => c.full).forEach((c) => out.push({ t: 'TAM HỢP ' + c.cuc.toUpperCase(), cls: 'cuc' }));
+    (res.hinhSets || []).forEach((s) => out.push({ t: 'TAM HÌNH ' + s.branches.map((b) => BRANCHES[b]).join(' ').toUpperCase() }));
+    if (res.tuyQuy) out.push({ t: 'TÙY QUỶ NHẬP MỘ' });
     return out;
   }
 
@@ -269,8 +275,8 @@
 
   function lineState(l) {
     const out = [chip(l.vs, l.vs === 'Vượng' || l.vs === 'Tướng' ? 'good' : l.vs === 'Tử' || l.vs === 'Tù' ? 'bad' : '')];
-    l.monthRel.forEach((x) => out.push(chip(x, /Phá|Khắc/.test(x) ? 'bad' : /Sinh|Kiến|Phù|Hợp/.test(x) ? 'good' : '')));
-    l.dayRel.forEach((x) => out.push(chip(x, /Khắc/.test(x) ? 'bad' : /Sinh|Lâm|Phù|Hợp/.test(x) ? 'good' : /Xung/.test(x) ? 'warn' : '')));
+    l.monthRel.forEach((x) => out.push(chip(x, /Phá|Khắc/.test(x) ? 'bad' : /Hình|Hại/.test(x) ? 'warn' : /Sinh|Kiến|Phù|Hợp/.test(x) ? 'good' : '')));
+    l.dayRel.forEach((x) => out.push(chip(x, /Khắc/.test(x) ? 'bad' : /Xung|Hình|Hại/.test(x) ? 'warn' : /Sinh|Lâm|Phù|Hợp/.test(x) ? 'good' : '')));
     if (l.isVoid) out.push(chip('Tuần Không', 'warn'));
     (l.status || []).forEach((x) => out.push(chip(x, 'warn')));
     if (l.moving) out.push(chip('Động', 'mv'));
@@ -474,10 +480,158 @@
           <li>Vượng – Tướng – Hưu – Tù – Tử xét theo ngũ hành của Nguyệt lệnh.</li>
           <li>Phục thần lấy từ quẻ Bát Thuần của cung khi lục thân không hiện trong quẻ chủ.</li>
           <li>Quải thần (Quái thân): Thế hào dương khởi Tý, Thế hào âm khởi Ngọ, đếm từ hào Sơ đến hào Thế.</li>
+          <li>Hình: Dần–Tị–Thân, Sửu–Tuất–Mùi, Tý–Mão, tự hình Thìn/Ngọ/Dậu/Hợi. Hại: Tý–Mùi, Sửu–Ngọ, Dần–Tị, Mão–Thìn, Thân–Hợi, Dậu–Tuất.</li>
+          <li>Nhập mộ: hào gặp chi Mộ của hành mình ở Nhật hoặc ở hào động (Kim mộ Sửu, Mộc mộ Mùi, Hỏa mộ Tuất, Thủy/Thổ mộ Thìn).</li>
+          <li>Ứng kỳ theo Cẩm nang ứng kỳ Lục Hào (Tăng San Bốc Dịch – Các môn loại ứng kỳ tổng chú): tĩnh gặp Trị / Xung, động gặp Trị / Hợp, quá vượng gặp Mộ / Khắc, suy gặp Sinh / Vượng, nhập Mộ chờ Xung, hợp trói chờ Xung mở, Nguyệt phá Điền thực / gặp Hợp, Tuần Không Điền / Xung / Xuất Không (phân biệt Chân – Giả – Động Không), Nguyên thần gặp Trị / Xung, chế Kỵ thần, Xung phi lộ phục. Vượng suy Dụng thần chấm điểm theo Nguyệt, Nhật, động hào, hồi đầu, tiến thoái.</li>
           <li>Hương Khuê: hào bị Quái thân khắc; Sàng Trướng: hào được Quái thân sinh (cột Quải thần ghi QT / H.Khuê / S.Trướng).</li>
           <li>Lộc, Quý nhân, Dương nhẫn, Văn xương theo can ngày; Dịch mã, Đào hoa, Tướng tinh, Hoa cái, Kiếp sát, Tai sát, Mưu tinh theo chi ngày; Thiên hỷ, Thiên y theo tháng.</li>
         </ul>
       </details>
+    </section>`;
+  }
+
+  /* ---------- Ứng kỳ (theo Cẩm nang ứng kỳ Lục Hào) ---------- */
+  const UK_ROLE = {
+    'uu-tien': ['Ưu tiên', 'good'],
+    'du-phong': ['Dự phòng', 'note'],
+    'tham-khao': ['Tham khảo', ''],
+    'canh-bao': ['Cảnh báo', 'bad']
+  };
+  const UK_PHASE = { 'kết quả': 'ph-kq', 'tháo gỡ': 'ph-tg', 'trợ lực': 'ph-tl', 'kích hoạt': 'ph-kh', 'cảnh báo': 'ph-cb', 'phụ': 'ph-phu' };
+
+  function ungKySection(data, dungKey) {
+    const { res, cal } = data;
+    const R0 = resolveRoles(res, dungKey);
+    const u = I.ungKy(res, cal, R0.rel, R0.anchorPos);
+    const from = { y: cal.effective.y, m: cal.effective.m, d: cal.effective.d };
+    const jd0 = jdFromDate(from.d, from.m, from.y);
+    const at = (n) => jdToDate(jd0 + n);
+    const ymd = (o) => `${o.y}-${pad(o.m)}-${pad(o.d)}`;
+    const shortDate = (o) => `${pad(o.d)}/${pad(o.m)}${o.y !== from.y ? '/' + o.y : ''}`;
+    const s = u.subject;
+    if (!s) {
+      return `<section class="card dsec"><h3 class="sec-title">Ứng kỳ</h3><p class="muted">Không xác định được Dụng thần.</p></section>`;
+    }
+
+    // Phiếu tóm tắt
+    const who = u.hidden
+      ? `Phục thần <b>${esc(s.relName)} ${esc(s.canChi)}</b> dưới hào ${s.pos}`
+      : `Hào ${s.pos} · <b>${esc(s.relName)} ${esc(s.canChi)}</b>${tuText(s) ? ' (' + tuText(s) + ')' : ''} · ${s.moving ? 'Động' : 'Tĩnh'}`;
+    const lvlTone = { 'Quá vượng': 'warn', Vượng: 'good', 'Bình hòa': '', Suy: 'bad', 'Có lực': 'good', 'Vô lực': 'bad' }[u.strength.level] || '';
+    const prow = (k, v) => `<div class="uk-prow"><div class="uk-pk">${k}</div><div class="uk-pv">${v}</div></div>`;
+    let profile = prow('Dụng thần', who + (u.pickNote ? `<div class="sub">${esc(u.pickNote)}</div>` : ''));
+    profile += prow('Vượng suy', `<span class="chip ${lvlTone} uk-lvl">${esc(u.strength.level)}</span> <span class="muted">${u.strength.why.map(esc).join(' · ')}</span>`);
+    profile += prow('Trạng thái', u.states.length ? `<div class="chips">${u.states.map((x) => chip(x.t, x.tone)).join('')}</div>` : '<span class="muted">Không có trạng thái cản trở rõ (Không, Phá, Mộ, Hợp trói, Tuyệt, Kỵ khắc).</span>');
+    if (!u.hidden && s.moving && s.transform) {
+      profile += prow('Động biến', `<div class="chips">${s.transform.map((t) => chip(t.t, t.tone === 'good' ? 'good' : t.tone === 'bad' ? 'bad' : '')).join('')}</div>`);
+    }
+    if (u.conds.length) profile += prow('Điều kiện cần', u.conds.map((c) => `<div>• ${esc(c)}</div>`).join(''));
+
+    // Bảng ứng viên
+    const yearOf = (b) => {
+      const y = from.y;
+      for (let k = 0; k < 13; k++) if (((y + k + 8) % 12 + 12) % 12 === b) return y + k;
+      return null;
+    };
+    const rows = u.items.slice(0, 9).map((it) => {
+      const b = it.branch;
+      const days = LH.cal
+        .scanDays({ day: { branch: b } }, from, at(40), { limit: 3 })
+        .items.map((x) => (x.jd === jd0 ? `<b>${shortDate(x.date)}</b><small class="muted"> (hôm nay)</small>` : shortDate(x.date)));
+      const mon = LH.cal.scanDays({ month: { branch: b } }, from, at(400), { limit: 1 }).items[0];
+      const monTxt = mon ? (mon.jd === jd0 ? `đang tháng ${BRANCHES[b]}` : `từ ${fmtDate(mon.date)}`) : '—';
+      const yr = yearOf(b);
+      const linkD = `tra-ngay.html#d=-1.${b}&mm=solar&f=${ymd(from)}&t=${ymd(at(366))}`;
+      const linkM = `tra-ngay.html#m=-1.${b}&mm=solar&f=${ymd(from)}&t=${ymd(at(731))}`;
+      const [roleTxt, roleTone] = UK_ROLE[it.role] || ['', ''];
+      const reasons = it.reasons
+        .slice()
+        .sort((a, c) => a.group - c.group)
+        .map((r) => `<span class="uk-r ${UK_PHASE[r.phase] || ''}" title="Nhóm ${r.group} · ${esc(r.phase)}">${esc(r.t)}</span>`)
+        .join('');
+      return `<tr class="uk-${it.role}">
+        <td class="nowrap"><span class="uk-chi" style="--c:${EL_COLORS[BRANCH_EL[b]]}">${BRANCHES[b]}</span></td>
+        <td class="nowrap"><span class="chip ${roleTone}">${roleTxt}</span></td>
+        <td><div class="uk-rs">${reasons}</div></td>
+        <td class="nowrap">${days.join(', ')}</td>
+        <td class="nowrap">${monTxt}</td>
+        <td class="nowrap">${yr ? (yr === from.y ? `${yr} <small class="muted">(năm nay)</small>` : yr) : '—'}</td>
+        <td class="nowrap"><div class="uk-links"><a href="${linkD}" target="_blank" rel="noopener">Tra ngày</a><a href="${linkM}" target="_blank" rel="noopener">Tra tháng</a></div></td>
+      </tr>`;
+    });
+
+    // Mốc theo ngày cụ thể: Xuất Không, Qua tháng phá
+    const extras = u.extras.map((e) => {
+      if (e.type === 'xuatKhong') {
+        const n = 10 - cal.pillars.day.stem; // số ngày tới ngày Giáp kế tiếp (hết tuần)
+        const d = at(n);
+        return `<li><b>${esc(e.label)}:</b> từ ${fmtDate(d)} <span class="muted">(hết tuần ${esc(cal.tuan.name)}, sang tuần mới)</span></li>`;
+      }
+      if (e.type === 'quaThang') {
+        const nextM = (cal.pillars.month.branch + 1) % 12;
+        const it = LH.cal.scanDays({ month: { branch: nextM } }, from, at(40), { limit: 1 }).items[0];
+        return `<li><b>${esc(e.label)}:</b> ${it ? 'từ ' + fmtDate(it.date) : '—'} <span class="muted">(sang tháng ${BRANCHES[nextM]})</span></li>`;
+      }
+      return '';
+    });
+
+    return `<section class="card dsec uk-sec">
+      <h3 class="sec-title">Ứng kỳ</h3>
+      <div class="uk-profile">${profile}</div>
+      <div class="uk-legend">
+        <span class="uk-r ph-kq">kết quả</span><span class="uk-r ph-tg">tháo gỡ cản trở</span><span class="uk-r ph-tl">trợ lực</span>
+        <span class="uk-r ph-kh">kích hoạt</span><span class="uk-r ph-phu">dấu hiệu phụ</span><span class="uk-r ph-cb">cảnh báo</span>
+      </div>
+      <div class="tscroll"><table class="dtable uk-table">
+        <thead><tr><th>Chi</th><th>Vai trò</th><th>Căn cứ</th><th>Ngày gần nhất</th><th>Tháng</th><th>Năm</th><th></th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table></div>
+      ${extras.length ? `<ul class="uk-extras">${extras.join('')}</ul>` : ''}
+      <div class="uk-notes">
+        <div class="uk-pk">Lưu ý</div>
+        <ul>${u.caveats.map((c) => `<li>${esc(c)}</li>`).join('')}
+          <li>Việc gần ưu tiên ngày / giờ, việc xa ưu tiên tháng / năm. Ngày có dấu hiệu chưa chắc là ngày hoàn tất (cẩm nang 8.2).</li></ul>
+      </div>
+      <p class="hint">Tính từ ngày lập quẻ ${fmtDate(from)}. Xếp hạng theo cẩm nang: điều kiện trực tiếp → tháo gỡ cản trở → Nguyên / Kỵ thần → động, biến hào → dấu hiệu phụ.</p>
+    </section>`;
+  }
+
+  /* ---------- Hợp cục · Hình hại · Mộ · Phục thần ---------- */
+  function comboSection(data) {
+    const { res } = data;
+    const the = res.lines[res.main.the - 1];
+    const rows = [];
+    const row = (k, body) => rows.push(`<div class="cb-row"><div class="cb-k">${k}</div><div class="cb-v">${body}</div></div>`);
+    const toThe = (el) =>
+      I.generates(el, the.el) ? chip('sinh Thế', 'good') : I.controls(el, the.el) ? chip('khắc Thế', 'bad') : el === the.el ? chip('phù Thế', 'good') : '';
+
+    const combos = res.combos || [];
+    if (combos.length) {
+      row('Hợp cục', combos
+        .map((c) => `<div class="cb-item"><b class="el-${c.el}">${esc(c.name)}</b> (${c.branches.map((b) => BRANCHES[b]).join(' ')}) → <b>${esc(c.relName)} cục</b>
+          ${c.full ? '' : '<span class="muted">· bán hợp</span>'} ${toThe(c.el)} <span class="muted">· ${c.members.map(esc).join(' + ')}</span></div>`)
+        .join(''));
+    }
+    (res.hinhSets || []).forEach((s) => row('Tam hình', `<b>${esc(s.name)}</b> <span class="muted">· ${s.members.map(esc).join(' + ')}</span>`));
+    const flow = res.notes.filter((n) => /Độc phát|Độc tĩnh|Loạn động|Sáu hào/.test(n));
+    if (flow.length) row('Hào động', flow.map(esc).join(' · '));
+    const mo = res.lines.filter((l) => (l.status || []).some((x) => /Nhập Mộ/.test(x)));
+    if (mo.length) {
+      row('Nhập mộ', mo
+        .map((l) => `<div class="cb-item">Hào ${l.pos} ${esc(l.relName)} ${esc(l.label)}: ${l.status.filter((x) => /Nhập Mộ/.test(x)).map((x) => chip(x, 'warn')).join('')}</div>`)
+        .join(''));
+    }
+    if (res.tuyQuy) row('Tùy quỷ', `<span class="chip bad">${esc(res.tuyQuy)}</span>`);
+    res.hidden.forEach((h) => {
+      const v = h.verdict || { ok: false, text: '', good: [], bad: [] };
+      row(`Phục thần`, `<div class="cb-item"><b>${esc(h.relName)} ${esc(h.canChi)}</b> dưới hào ${h.pos} →
+        <span class="chip ${v.ok ? 'good' : 'bad'}">${esc(v.text)}</span></div>
+        <div class="chips">${v.good.map((x) => chip('+ ' + x, 'good')).join('')}${v.bad.map((x) => chip('− ' + x, 'bad')).join('')}</div>`);
+    });
+    return `<section class="card dsec">
+      <h3 class="sec-title">Hợp cục · Hình hại · Mộ · Phục thần</h3>
+      ${rows.length ? `<div class="cb-list">${rows.join('')}</div>` : '<p class="muted">Không có hợp cục, tam hình, nhập mộ hay phục thần cần xét.</p>'}
+      <p class="hint">Tam hợp cục thành khi đủ ba chi và có ít nhất hai chi do hào động / hào biến đảm nhận (Nhật, Nguyệt, hào tĩnh có thể góp một chi). Bán hợp chỉ xét khi có chi Đế vượng (Tý, Ngọ, Mão, Dậu). Kết luận phục thần là gợi ý tổng hợp theo vượng suy, Nhật Nguyệt và phi thần.</p>
     </section>`;
   }
 
@@ -486,8 +640,10 @@
       overview(data) +
       timeSection(data) +
       dungSection(data, dungKey) +
+      ungKySection(data, dungKey) +
       linesSection(data, dungKey) +
       movingSection(data) +
+      comboSection(data) +
       shenshaSection(data) +
       notesSection()
     );

@@ -130,6 +130,81 @@ function P2(p) {
   return C.pillarName(p);
 }
 
+console.log('Hợp cục · Hình hại · Mộ · Phục thần · Ứng kỳ');
+test('Độc phát hào 6; Thân-Kim gặp ngày/tháng Hợi → Nhật Hại, Nguyệt Hại', () => {
+  assert.ok(r.notes.includes('Độc phát: hào 6'));
+  assert.ok(r.lines[3].dayRel.includes('Nhật Hại') && r.lines[3].monthRel.includes('Nguyệt Hại'));
+});
+test('Bát Thuần Càn động hào 1, 5 → Tam hợp Thủy cục (Tử Tôn cục) với Thìn tĩnh', () => {
+  const x = I.analyze([9, 7, 7, 7, 9, 7], sample);
+  const full = x.combos.filter((c) => c.full);
+  assert.equal(full.length, 1);
+  assert.equal(full[0].name, 'Tam hợp Thủy cục');
+  assert.equal(full[0].relName, 'Tử Tôn');
+});
+test('Bán hợp cần chi Đế vượng và ít nhất một hào động', () => {
+  assert.ok(r.combos.some((c) => !c.full && c.name === 'Bán hợp Thủy cục'));
+  assert.ok(r.combos.every((c) => c.full || c.branches.some((b) => [0, 3, 6, 9].includes(b))));
+});
+test('Phục thần Tài-Ngọ (Tử, bị khắc, tuần không) → vô dụng', () => {
+  assert.equal(r.hidden[0].verdict.ok, false);
+  assert.ok(r.hidden[0].verdict.bad.includes('Phục thần tuần không'));
+});
+test('Tùy Quỷ Nhập Mộ: Hỏa Phong Đỉnh ngày Canh Thìn (Thế Hợi-Thủy Quan Quỷ mộ tại Thìn)', () => {
+  const c = C.getInfo({ y: 2026, m: 11, d: 2, h: 10, mi: 0, s: 0 });
+  const x = I.analyze([8, 7, 7, 7, 8, 7], c);
+  assert.equal(x.main.name, 'Hỏa Phong Đỉnh');
+  assert.ok(/Tùy Quỷ Nhập Mộ/.test(x.tuyQuy || ''));
+});
+const ukRole = (u, name) => (u.items.find((it) => B(it.branch) === name) || {}).role;
+const ukHas = (u, name, re) => u.items.some((it) => B(it.branch) === name && it.reasons.some((x) => re.test(x.t)));
+test('Ứng kỳ Thế Dần (tĩnh, vượng, được Nhật hợp): Thân (xung) và Dần (trị) ưu tiên; hợp tĩnh ghi là hợp trợ', () => {
+  const u = I.ungKy(r, sample, null, 2);
+  assert.equal(u.strength.level, 'Vượng');
+  assert.equal(ukRole(u, 'Thân'), 'uu-tien');
+  assert.equal(ukRole(u, 'Dần'), 'uu-tien');
+  assert.ok(u.states.some((x) => /hợp trợ/.test(x.t)));
+  assert.ok(ukHas(u, 'Tý', /Nguyên thần/));
+});
+test('Ứng kỳ khi Dụng thần không hiện → Trị phục thần (Ngọ) và Xung phi lộ phục (Tuất)', () => {
+  const u = I.ungKy(r, sample, 3, null); // Thê Tài phục dưới hào 3 Thìn
+  assert.equal(u.hidden, true);
+  assert.equal(ukRole(u, 'Ngọ'), 'uu-tien');
+  assert.ok(ukHas(u, 'Tuất', /Xung phi lộ phục/));
+});
+test('Dụng thần lưỡng hiện chọn một hào chính (Huynh Đệ: chọn H6 đang động)', () => {
+  const u = I.ungKy(r, sample, 1, null);
+  assert.equal(u.subject.pos, 6);
+  assert.ok(/lưỡng hiện/.test(u.pickNote));
+  assert.ok(ukHas(u, 'Sửu', /Động mà gặp Hợp/));
+});
+test('Dụng thần tĩnh mà suy gặp Xung → Cảnh báo (xung tán)', () => {
+  const u = I.ungKy(r, sample, 4, null); // Quan Quỷ Tuất (Tù)
+  assert.equal(u.strength.level, 'Suy');
+  assert.equal(ukRole(u, 'Thìn'), 'canh-bao');
+});
+test('Động mà bị Nhật hợp → Hợp trói, chờ Xung mở (xung Dần là Thân, xung Hợi là Tị)', () => {
+  const x = I.analyze([7, 6, 8, 8, 7, 8], sample); // Truân, hào 2 Dần động, ngày Hợi
+  const u = I.ungKy(x, sample, null, 2);
+  assert.ok(u.states.some((s) => /Hợp trói/.test(s.t)));
+  assert.ok(ukHas(u, 'Thân', /Xung mở Hợp/) && ukHas(u, 'Tị', /Xung mở Hợp/));
+  assert.ok(!ukHas(u, 'Hợi', /Động mà gặp Hợp/)); // đang bị trói thì không lấy "động gặp hợp"
+});
+test('Tuần Không: Ngọ suy (Tử, Nhật khắc) → Chân Không, có mốc Xuất Không', () => {
+  const x = I.analyze([7, 7, 7, 7, 7, 7], sample); // Càn tĩnh, Quan Quỷ Ngọ hào 4
+  const u = I.ungKy(x, sample, 4, null);
+  assert.ok(u.states.some((s) => /Chân Không/.test(s.t)));
+  assert.ok(u.extras.some((e) => e.type === 'xuatKhong'));
+  assert.ok(ukHas(u, 'Ngọ', /Điền Không/) && ukHas(u, 'Tý', /Xung Không/));
+});
+test('Nhập Nhật mộ: Đỉnh ngày Canh Thìn, Thế Hợi-Thủy → Xung Mộ ngày Tuất', () => {
+  const c = C.getInfo({ y: 2026, m: 11, d: 2, h: 10, mi: 0, s: 0 });
+  const x = I.analyze([8, 7, 7, 7, 8, 7], c);
+  const u = I.ungKy(x, c, null, x.main.the);
+  assert.ok(u.states.some((s) => /Nhập Mộ Thìn — Nhật mộ/.test(s.t)));
+  assert.ok(ukHas(u, 'Tuất', /Xung Mộ/));
+});
+
 console.log('Bát cung & loại quẻ');
 const all = I.allHexagrams();
 test('Đủ 64 quẻ, không trùng', () => {

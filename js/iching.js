@@ -150,6 +150,24 @@
   const controls = (a, b) => (a + 2) % 5 === b;
   const isClash = (a, b) => mod(a - b, 12) === 6;
   const isCombine = (a, b) => (a + b) % 12 === 1;
+  // Hình: Dần–Tị–Thân, Sửu–Tuất–Mùi, Tý–Mão; tự hình Thìn, Ngọ, Dậu, Hợi
+  const HINH_PAIRS = [[2, 5], [5, 8], [8, 2], [1, 10], [10, 7], [7, 1], [0, 3]];
+  const SELF_HINH = [4, 6, 9, 11];
+  const isHinh = (a, b) =>
+    a === b ? SELF_HINH.includes(a) : HINH_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a));
+  // Lục hại: Tý–Mùi, Sửu–Ngọ, Dần–Tị, Mão–Thìn, Thân–Hợi, Dậu–Tuất
+  const isHai = (a, b) => a !== b && (a + b) % 12 === 7;
+  // Tam hợp cục (mid = chi Đế vượng ở giữa)
+  const TAM_HOP = [
+    { branches: [8, 0, 4], el: 4, mid: 0 }, // Thân Tý Thìn – Thủy
+    { branches: [11, 3, 7], el: 0, mid: 3 }, // Hợi Mão Mùi – Mộc
+    { branches: [2, 6, 10], el: 1, mid: 6 }, // Dần Ngọ Tuất – Hỏa
+    { branches: [5, 9, 1], el: 3, mid: 9 } // Tị Dậu Sửu – Kim
+  ];
+  const TAM_HINH = [
+    { branches: [2, 5, 8], name: 'Dần Tị Thân (vô ân chi hình)' },
+    { branches: [1, 10, 7], name: 'Sửu Tuất Mùi (trì thế chi hình)' }
+  ];
 
   const RELATIVES = ['Phụ Mẫu', 'Huynh Đệ', 'Tử Tôn', 'Thê Tài', 'Quan Quỷ'];
   const REL_SHORT = ['Phụ', 'Huynh', 'Tử', 'Tài', 'Quan'];
@@ -166,6 +184,7 @@
   const STAGES = ['Trường Sinh', 'Mộc Dục', 'Quan Đới', 'Lâm Quan', 'Đế Vượng', 'Suy', 'Bệnh', 'Tử', 'Mộ', 'Tuyệt', 'Thai', 'Dưỡng'];
   const STAGE_START = [11, 2, 8, 5, 8]; // Mộc Hợi, Hỏa Dần, Thổ Thân, Kim Tị, Thủy Thân
   const stageOf = (el, branch) => mod(branch - STAGE_START[el], 12);
+  const moOf = (el) => (STAGE_START[el] + 8) % 12; // chi Mộ của một hành
 
   const LINE_NAMES = ['Sơ', 'Nhị', 'Tam', 'Tứ', 'Ngũ', 'Thượng'];
 
@@ -271,6 +290,8 @@
       else if (controls(dayEl, nj.el)) dayRel.push('Nhật Khắc');
       else if (dayEl === nj.el) dayRel.push('Nhật Phù');
     }
+    if (isHinh(nj.branch, db)) dayRel.push(nj.branch === db ? 'Nhật Tự Hình' : 'Nhật Hình');
+    if (isHai(nj.branch, db)) dayRel.push('Nhật Hại');
 
     const monthRel = [];
     if (nj.branch === mb) monthRel.push('Nguyệt Kiến');
@@ -281,6 +302,8 @@
       else if (controls(monthEl, nj.el)) monthRel.push('Nguyệt Khắc');
       else if (monthEl === nj.el) monthRel.push('Nguyệt Phù');
     }
+    if (isHinh(nj.branch, mb)) monthRel.push(nj.branch === mb ? 'Nguyệt Tự Hình' : 'Nguyệt Hình');
+    if (isHai(nj.branch, mb)) monthRel.push('Nguyệt Hại');
 
     const vs = seasonState(nj.el, monthEl);
     const marks = {};
@@ -466,6 +489,125 @@
     });
 
     const ff = fuFan(main, changed, mainLines, changedLines || [], moving);
+    const db = cal.pillars.day.branch;
+    const mbr = cal.pillars.month.branch;
+
+    /* ---------- Nhập mộ (tại Nhật / tại hào động) ---------- */
+    mainLines.forEach((l, i) => {
+      const mo = moOf(l.el);
+      if (l.tsDay === 'Mộ') l.status.push('Nhập Mộ tại Nhật');
+      mainLines.forEach((o, j) => {
+        if (j !== i && o.moving && o.branch === mo) l.status.push(`Nhập Mộ hào động H${j + 1}`);
+      });
+    });
+
+    /* ---------- Tam hợp cục / bán hợp, tam hình ---------- */
+    // Thành phần: hào (động/tĩnh), hào biến, Nhật, Nguyệt; "act" = hào động hoặc hào biến
+    const parts = [];
+    mainLines.forEach((l, i) => {
+      parts.push({ b: l.branch, src: `H${i + 1}${l.moving ? ' động' : ''}`, act: l.moving, rank: l.moving ? 0 : 2 });
+      if (l.moving && l.changeTo) parts.push({ b: l.changeTo.branch, src: `biến H${i + 1}`, act: true, rank: 1 });
+    });
+    parts.push({ b: db, src: 'Nhật', act: false, rank: 3 });
+    parts.push({ b: mbr, src: 'Nguyệt', act: false, rank: 3 });
+    const pick = (b) => parts.filter((p) => p.b === b).sort((x, y) => x.rank - y.rank);
+
+    const combos = [];
+    TAM_HOP.forEach((g) => {
+      const have = g.branches.map(pick);
+      const base = {
+        el: g.el,
+        cuc: ELEMENTS[g.el] + ' cục',
+        relName: RELATIVES[relativeOf(g.el, main.palaceEl)]
+      };
+      const activeCount = have.filter((h) => h.some((p) => p.act)).length;
+      // Cục thành khi đủ 3 chi và ít nhất 2 chi do hào động / hào biến đảm nhận
+      if (have.every((h) => h.length) && activeCount >= 2) {
+        combos.push(Object.assign({ full: true, name: 'Tam hợp ' + base.cuc, branches: g.branches, members: have.map((h) => h[0].src) }, base));
+        return;
+      }
+      // Bán hợp: chi Đế vượng + một chi còn lại, có ít nhất một hào động / hào biến
+      const mids = pick(g.mid);
+      if (!mids.length) return;
+      g.branches.filter((b) => b !== g.mid).forEach((b) => {
+        const others = pick(b);
+        if (!others.length) return;
+        const a = mids.find((p) => p.act) || mids[0];
+        const c = others.find((p) => p.act) || others[0];
+        if (!a.act && !c.act) return;
+        const order = g.branches.filter((x) => x === g.mid || x === b);
+        combos.push(Object.assign({ full: false, name: 'Bán hợp ' + base.cuc, branches: order, members: [a.src, c.src] }, base));
+      });
+    });
+
+    const hinhSets = [];
+    TAM_HINH.forEach((s) => {
+      const have = s.branches.map(pick);
+      if (have.every((h) => h.length) && have.some((h) => h.some((p) => p.act))) {
+        hinhSets.push({ name: s.name, branches: s.branches, members: have.map((h) => h[0].src) });
+      }
+    });
+
+    /* ---------- Phục thần có xuất được không ---------- */
+    hidden.forEach((h) => {
+      const fly = mainLines[h.pos - 1];
+      const dEl = BRANCH_EL[db];
+      const mEl = BRANCH_EL[mbr];
+      const good = [];
+      const bad = [];
+      const strongMonth = h.vs === 'Vượng' || h.vs === 'Tướng';
+      const dayHelp = h.branch === db || generates(dEl, h.el) || dEl === h.el;
+      const dayHurt = h.branch !== db && controls(dEl, h.el);
+      (strongMonth ? good : bad).push(`Phục thần ${h.vs} theo Nguyệt`);
+      if (h.branch === db) good.push('Phục thần lâm Nhật');
+      else if (generates(dEl, h.el)) good.push('Nhật sinh phục thần');
+      else if (dEl === h.el) good.push('Nhật phù phục thần');
+      if (dayHurt) bad.push('Nhật khắc phục thần');
+      if (controls(mEl, h.el) && h.branch !== mbr) bad.push('Nguyệt khắc phục thần');
+      if (isClash(h.branch, mbr)) bad.push('Phục thần Nguyệt phá');
+      if (isClash(h.branch, db)) (strongMonth || dayHelp ? good : bad).push(strongMonth || dayHelp ? 'Nhật xung phục thần (xung khởi)' : 'Nhật xung phục thần (xung tán)');
+      if (h.isVoid) bad.push('Phục thần tuần không');
+      if (stageOf(h.el, db) === 8) bad.push('Phục thần nhập mộ tại Nhật');
+      if (stageOf(h.el, db) === 9) bad.push('Phục thần tuyệt tại Nhật');
+      const flyStrong = fly.vs === 'Vượng' || fly.vs === 'Tướng';
+      const flyOpen = fly.isVoid || fly.monthRel.includes('Nguyệt Phá') || fly.dayRel.includes('Nhật Xung');
+      if (generates(fly.el, h.el)) good.push('Phi thần sinh phục');
+      if (controls(fly.el, h.el)) (flyStrong && !flyOpen ? bad : good).push(flyStrong && !flyOpen ? 'Phi thần vượng khắc phục' : 'Phi thần khắc phục nhưng phi suy / bị phá');
+      if (stageOf(h.el, fly.branch) === 8) bad.push('Phục thần mộ dưới phi thần');
+      if (stageOf(h.el, fly.branch) === 9) bad.push('Phục thần tuyệt dưới phi thần');
+      if (fly.isVoid) good.push('Phi thần tuần không');
+      if (fly.monthRel.includes('Nguyệt Phá')) good.push('Phi thần Nguyệt phá');
+      if (fly.dayRel.includes('Nhật Xung')) good.push('Nhật xung phi thần (khai phục)');
+      if (fly.moving) good.push('Phi thần phát động');
+      const hasQi = strongMonth || dayHelp || generates(fly.el, h.el);
+      const blocked =
+        (controls(fly.el, h.el) && flyStrong && !flyOpen) ||
+        (dayHurt && !strongMonth) ||
+        (isClash(h.branch, mbr) && !dayHelp) ||
+        (h.isVoid && !strongMonth && !dayHelp);
+      const ok = hasQi && !blocked;
+      h.verdict = { ok, text: ok ? 'Phục thần hữu dụng — có thể xuất' : 'Phục thần vô dụng — khó xuất', good, bad };
+    });
+
+    /* ---------- Tùy Quỷ nhập mộ (hào Thế) ---------- */
+    let tuyQuy = null;
+    {
+      const T = mainLines[main.the - 1];
+      const lamQuy = T.rel === 4;
+      const hoaQuy = T.moving && T.changeTo && T.changeTo.rel === 4;
+      if (lamQuy || hoaQuy) {
+        const mo = moOf(T.el);
+        const where = [];
+        if (T.tsDay === 'Mộ') where.push('Nhật');
+        mainLines.forEach((o, j) => {
+          if (o.moving && j !== main.the - 1 && o.branch === mo) where.push('hào động H' + (j + 1));
+        });
+        if (T.moving && T.changeTo && T.changeTo.branch === mo) where.push('chính hào biến (hóa mộ)');
+        if (where.length) tuyQuy = `Tùy Quỷ Nhập Mộ: Thế ${lamQuy ? 'lâm' : 'hóa'} Quan Quỷ, nhập mộ tại ${where.join(', ')}`;
+      }
+    }
+
+    const movingPos = moving.map((m, i) => (m ? i + 1 : 0)).filter(Boolean);
 
     const notes = [];
     if (main.lucXung) notes.push('Quẻ chủ là quẻ Lục Xung');
@@ -482,9 +624,19 @@
     if (ff.phanNgam) notes.push(ff.phanNgam);
     if (ff.haoPhanNgam.length) notes.push('Hào Phản Ngâm: hào ' + ff.haoPhanNgam.join(', '));
     if (!hasMoving) notes.push('Quẻ tĩnh (không có hào động)');
-    if (moving.filter(Boolean).length === 6) notes.push('Sáu hào đều động');
+    if (movingPos.length === 1) notes.push(`Độc phát: hào ${movingPos[0]}`);
+    if (movingPos.length === 5) notes.push(`Độc tĩnh: hào ${[1, 2, 3, 4, 5, 6].find((p) => !movingPos.includes(p))}`);
+    if (movingPos.length >= 4) notes.push('Loạn động (nhiều hào động)');
+    if (movingPos.length === 6) notes.push('Sáu hào đều động');
+    combos.filter((c) => c.full).forEach((c) => notes.push(`${c.name} — ${c.relName} cục (${c.members.join(', ')})`));
+    hinhSets.forEach((s) => notes.push(`Tam hình ${s.name}`));
+    if (tuyQuy) notes.push(tuyQuy);
 
     return {
+      movingPos,
+      combos,
+      hinhSets,
+      tuyQuy,
       values: values.slice(),
       bits,
       moving,
@@ -515,6 +667,327 @@
       cuu: mod(relIdx - 3, 5),
       tiet: mod(relIdx + 1, 5)
     };
+  }
+
+  /* ---------- Ứng kỳ (theo Cẩm nang ứng kỳ Lục Hào / Tăng San Bốc Dịch) ---------- */
+  const xungOf = (b) => (b + 6) % 12;
+  const hopOf = (b) => mod(1 - b, 12);
+  const vuongOf = (el) => (STAGE_START[el] + 4) % 12; // chi Đế vượng của hành
+  // Chi đại diện cho "ngày hành X": Tý / Ngọ / Mão / Dậu; riêng Thổ lấy Thìn, Tuất, Sửu, Mùi
+  // (bỏ chi là Mộ của hành đang xét, tối đa 2 chi)
+  const elDays = (el, forEl) =>
+    el === 2 ? [4, 10, 1, 7].filter((b) => forEl == null || b !== moOf(forEl)).slice(0, 2) : [[3, 6, 0, 9, 0][el]];
+  const SEASON_OF_EL = ['mùa Xuân (Dần, Mão)', 'mùa Hạ (Tị, Ngọ)', 'tháng Tứ quý (Thìn, Tuất, Sửu, Mùi)', 'mùa Thu (Thân, Dậu)', 'mùa Đông (Hợi, Tý)'];
+
+  // Vượng suy thực tế của một hào: Nguyệt, Nhật, động hào sinh khắc, động biến
+  function lineStrength(l, res) {
+    let s = { Vượng: 2, Tướng: 1, Hưu: -1, Tù: -2, Tử: -2 }[l.vs] || 0;
+    const why = [`${l.vs} theo Nguyệt`];
+    if (l.monthRel.includes('Nguyệt Kiến')) { s += 1; why.push('lâm Nguyệt kiến'); }
+    if (l.monthRel.includes('Nguyệt Phá')) { s -= 3; why.push('Nguyệt phá'); }
+    if (l.dayRel.includes('Lâm Nhật')) { s += 2; why.push('lâm Nhật'); }
+    else if (l.dayRel.includes('Nhật Sinh')) { s += 2; why.push('Nhật sinh'); }
+    else if (l.dayRel.includes('Nhật Phù')) { s += 1; why.push('Nhật phù'); }
+    if (l.dayRel.includes('Nhật Khắc')) { s -= 2; why.push('Nhật khắc'); }
+    res.lines.forEach((o) => {
+      if (!o.moving || o === l) return;
+      if (generates(o.el, l.el)) { s += 1; why.push(`H${o.pos} động sinh`); }
+      else if (controls(o.el, l.el)) { s -= 1; why.push(`H${o.pos} động khắc`); }
+    });
+    if (l.moving && l.transform) {
+      const has = (t) => l.transform.some((x) => x.t === t);
+      if (has('Hồi Đầu Sinh')) { s += 2; why.push('hồi đầu sinh'); }
+      if (has('Hồi Đầu Khắc')) { s -= 2; why.push('hồi đầu khắc'); }
+      if (has('Hóa Tiến Thần')) { s += 1; why.push('hóa tiến'); }
+      if (has('Hóa Thoái Thần')) { s -= 1; why.push('hóa thoái'); }
+    }
+    if (!l.moving && l.dayRel.includes('Nhật Xung')) {
+      if (s >= 1) why.push('Nhật xung → ám động (xung khởi)');
+      else { s -= 1; why.push('Nhật xung → xung tán'); }
+    }
+    const level = s >= 5 ? 'Quá vượng' : s >= 2 ? 'Vượng' : s >= 0 ? 'Bình hòa' : 'Suy';
+    return { score: s, level, why };
+  }
+
+  /**
+   * Gợi ý ứng kỳ theo Dụng thần.
+   * relIdx: lục thân Dụng thần; anchorPos: vị trí hào nếu Dụng thần là hào Thế / Ứng.
+   * Trả về hồ sơ Dụng thần (vượng suy, trạng thái cản trở, điều kiện cần), danh sách chi ứng viên
+   * đã xếp hạng (role: uu-tien / du-phong / tham-khao / canh-bao), mốc theo ngày và lưu ý.
+   * Nhóm căn cứ (group): 1 điều kiện trực tiếp · 2 tháo gỡ cản trở · 3 Nguyên/Kỵ thần · 4 động/biến hào · 5 dấu hiệu phụ.
+   */
+  function ungKy(res, cal, relIdx, anchorPos) {
+    const GROUP_W = { 1: 10, 2: 10, 3: 6, 4: 3, 5: 1 };
+    const cands = new Map();
+    const add = (b, t, group, phase, tone) => {
+      const c = cands.get(b) || { branch: b, reasons: [], score: 0, warnOnly: true };
+      if (c.reasons.some((r) => r.t === t)) return;
+      c.reasons.push({ t, group, phase, tone: tone || '' });
+      if (phase !== 'cảnh báo') {
+        c.score += GROUP_W[group] || 1;
+        c.warnOnly = false;
+      }
+      cands.set(b, c);
+    };
+    const states = [];
+    const conds = [];
+    const caveats = [];
+    const extras = [];
+    const db = cal.pillars.day.branch;
+    const mbr = cal.pillars.month.branch;
+
+    /* 1. Xác định Dụng thần (lưỡng hiện: chọn một hào chính) */
+    let L = null;
+    let H = null;
+    let pickNote = '';
+    if (anchorPos) L = res.lines[anchorPos - 1];
+    else {
+      const ls = res.lines.filter((l) => l.rel === relIdx);
+      if (ls.length > 1) {
+        const sc = (l) => (l.moving ? 8 : 0) + (l.isThe || l.isUng ? 4 : 0) + (l.isVoid ? 0 : 2) + lineStrength(l, res).score * 0.1;
+        ls.sort((a, b) => sc(b) - sc(a));
+        const w = ls[0];
+        const why = w.moving ? 'đang động' : w.isThe ? 'trì Thế' : w.isUng ? 'lâm Ứng' : !w.isVoid ? 'không gặp Tuần Không' : 'vượng hơn';
+        pickNote = `Dụng thần lưỡng hiện (hào ${ls.map((l) => l.pos).join(' và ')}): chọn hào ${w.pos} vì ${why}; hào còn lại chỉ để tham khảo.`;
+      }
+      L = ls[0] || null;
+      if (!L) H = res.hidden.find((h) => h.rel === relIdx) || null;
+    }
+    if (!L && !H) return { subject: null, hidden: false, items: [], states, conds, caveats, extras };
+    const godRel = L ? L.rel : H.rel;
+    const ngRel = mod(godRel - 1, 5);
+    const kyRel = mod(godRel - 2, 5);
+
+    let strength;
+    if (H) {
+      /* ---- Dụng thần không hiện: Phục thần – Phi thần ---- */
+      const fly = res.lines[H.pos - 1];
+      const v = H.verdict || { ok: false, good: [], bad: [] };
+      strength = { score: v.ok ? 1 : -1, level: v.ok ? 'Có lực' : 'Vô lực', why: v.good.concat(v.bad) };
+      states.push({ t: `Phục dưới hào ${H.pos} (phi thần ${fly.relName} ${fly.label})`, tone: '' });
+      states.push({ t: v.ok ? 'Phục thần hữu dụng' : 'Phục thần vô dụng — khó xuất', tone: v.ok ? 'good' : 'bad' });
+      add(H.branch, 'Phục thần gặp Trị', 1, 'kết quả');
+      add(xungOf(fly.branch), `Xung phi lộ phục: xung phi thần ${BRANCHES[fly.branch]}`, 2, 'tháo gỡ');
+      add(hopOf(H.branch), 'Phục thần gặp Hợp', 3, 'trợ lực');
+      conds.push('Cần Phục thần gặp Trị, hoặc Phi thần bị Xung / khắc / suy để Phục thần lộ ra');
+      if (H.isVoid) {
+        add(xungOf(H.branch), 'Phục thần Tuần Không: Xung Không', 2, 'tháo gỡ');
+        extras.push({ type: 'xuatKhong', label: 'Phục thần xuất Không' });
+      }
+      if (stageOf(H.el, db) === 8) add(xungOf(moOf(H.el)), 'Phục thần nhập Nhật mộ: Xung mộ', 2, 'tháo gỡ');
+      if (!v.ok) {
+        elDays(mod(H.el - 1, 5), H.el).forEach((b) => add(b, `Phục thần suy: ngày hành sinh phục (${ELEMENTS[mod(H.el - 1, 5)]})`, 3, 'trợ lực'));
+        caveats.push('Phục thần vô lực: dù Phi thần bị Xung cũng chưa chắc dùng được (cẩm nang 7.1).');
+      }
+      if (fly.isVoid || fly.monthRel.includes('Nguyệt Phá') || fly.dayRel.includes('Nhật Xung')) {
+        states.push({ t: 'Phi thần đang Không / Phá / bị Nhật xung — phục thần dễ lộ', tone: 'good' });
+      }
+    } else {
+      /* ---- Dụng thần hiện trên quẻ ---- */
+      const B = L.branch;
+      const xB = xungOf(B);
+      const hB = hopOf(B);
+      const mo = moOf(L.el);
+      strength = lineStrength(L, res);
+      const weak = strength.level === 'Suy';
+
+      // Tuần Không: Động Không / Giả Không / Chân Không
+      if (L.isVoid) {
+        const kind = L.moving ? 'Động Không' : strength.score >= 1 ? 'Giả Không' : 'Chân Không';
+        const note = { 'Động Không': 'động bất vi không', 'Giả Không': 'vượng / được sinh trợ', 'Chân Không': 'suy, thiếu trợ lực' }[kind];
+        states.push({ t: `Tuần Không — ${kind} (${note})`, tone: kind === 'Chân Không' ? 'bad' : 'warn' });
+        add(B, 'Điền Không: gặp ngày / tháng Trị', 2, 'tháo gỡ');
+        add(xB, 'Xung Không: gặp ngày / tháng Xung', 2, 'tháo gỡ');
+        extras.push({ type: 'xuatKhong', label: 'Xuất Không' });
+        conds.push('Cần Điền Không, Xung Không hoặc Xuất Không');
+        if (kind === 'Chân Không') caveats.push('Dụng thần Chân Không: dù gặp ngày Điền / Xung hay xuất tuần cũng khó thành nếu không được sinh trợ.');
+      }
+      // Nguyệt Phá
+      if (L.monthRel.includes('Nguyệt Phá')) {
+        const cuu = L.dayRel.some((r) => /Sinh|Phù|Lâm/.test(r)) || res.lines.some((o) => o.moving && o !== L && generates(o.el, L.el));
+        states.push({ t: `Nguyệt Phá — ${cuu ? 'có cứu (được Nhật / động hào sinh phù)' : 'không cứu'}`, tone: cuu ? 'warn' : 'bad' });
+        add(B, 'Nguyệt phá: Điền thực (tháng / ngày Trị)', 2, 'tháo gỡ');
+        add(hB, 'Nguyệt phá: phá mà gặp Hợp', 2, 'tháo gỡ');
+        extras.push({ type: 'quaThang', label: 'Qua tháng phá' });
+        conds.push('Cần Điền thực, gặp Hợp hoặc qua tháng phá');
+      }
+      // Nhập Mộ: Nhật mộ / Động mộ / Hóa mộ
+      const moTypes = [];
+      if (db === mo) moTypes.push('Nhật mộ');
+      res.lines.forEach((o) => {
+        if (o.moving && o !== L && o.branch === mo) moTypes.push(`Động mộ (H${o.pos})`);
+      });
+      if (L.moving && L.changeTo && L.changeTo.branch === mo) moTypes.push('Hóa mộ');
+      if (moTypes.length) {
+        states.push({ t: `Nhập Mộ ${BRANCHES[mo]} — ${moTypes.join(', ')}`, tone: 'bad' });
+        add(xungOf(mo), `Xung Mộ: ${BRANCHES[xungOf(mo)]} xung ${BRANCHES[mo]} mở kho`, 2, 'tháo gỡ');
+        add(B, 'Trị hào để xuất Mộ', 4, 'kết quả');
+        conds.push(`Cần Xung khai Mộ (ngày / tháng ${BRANCHES[xungOf(mo)]})`);
+      }
+      // Hợp: động mà bị hợp = hợp trói; tĩnh được hợp = có thể là hợp trợ / hợp khởi
+      const binders = [];
+      if (L.dayRel.includes('Nhật Hợp')) binders.push({ b: db, label: 'Nhật' });
+      if (L.monthRel.includes('Nguyệt Hợp')) binders.push({ b: mbr, label: 'Nguyệt' });
+      res.lines.forEach((o) => {
+        if (o.moving && o !== L && isCombine(o.branch, B)) binders.push({ b: o.branch, label: `H${o.pos} động` });
+      });
+      if (L.moving && L.changeTo && isCombine(L.changeTo.branch, B)) binders.push({ b: L.changeTo.branch, label: 'biến hào (hóa hợp)' });
+      if (binders.length) {
+        const who = binders.map((x) => `${x.label} ${BRANCHES[x.b]}`).join(', ');
+        if (L.moving) {
+          states.push({ t: `Hợp trói — động mà bị hợp (${who})`, tone: 'warn' });
+          add(xB, 'Xung mở Hợp: xung Dụng thần', 2, 'tháo gỡ');
+          binders.forEach((x) => add(xungOf(x.b), `Xung mở Hợp: xung ${x.label} ${BRANCHES[x.b]}`, 2, 'tháo gỡ'));
+          conds.push('Cần Xung mở Hợp');
+        } else {
+          states.push({ t: `Được hợp (${who}) — có thể là hợp trợ / hợp khởi`, tone: '' });
+          add(xB, 'Nếu là hợp giữ: chờ Xung mở', 5, 'tháo gỡ');
+          caveats.push('Dụng thần tĩnh được hợp: hợp có thể là hợp trợ, không mặc định phải chờ ngày Xung (cẩm nang 3.6).');
+        }
+      }
+      // Tuyệt
+      const tuyet = stageOf(L.el, db) === 9 ? 'Tuyệt tại Nhật' : L.moving && L.changeTo && stageOf(L.el, L.changeTo.branch) === 9 ? 'Hóa Tuyệt' : '';
+      if (tuyet) {
+        states.push({ t: tuyet, tone: 'bad' });
+        add(STAGE_START[L.el], 'Tuyệt gặp Sinh: ngày / tháng Trường sinh', 2, 'trợ lực');
+        conds.push('Cần gặp Trường sinh / được sinh trợ');
+      }
+      // Nhật xung hào tĩnh: Xung khởi (ám động) / Xung tán
+      if (!L.moving && L.dayRel.includes('Nhật Xung')) {
+        if (strength.score >= 1) {
+          states.push({ t: 'Ám động — Nhật xung khởi', tone: 'good' });
+          add(hB, 'Ám động: gặp Hợp', 4, 'kết quả');
+        } else {
+          states.push({ t: 'Xung tán — suy mà bị Nhật xung', tone: 'bad' });
+          caveats.push('Dụng thần suy bị Nhật xung (xung tán): ngày Trị / Xung dễ chỉ là lúc sự việc tan rã.');
+        }
+      }
+
+      // Điều kiện trực tiếp theo động / tĩnh (cẩm nang 3.1, 3.2, 4.1, 4.2)
+      const tiedUp = L.moving && binders.length;
+      if (L.moving) {
+        add(B, 'Động mà gặp Trị', 1, 'kết quả');
+        if (!tiedUp) add(hB, 'Động mà gặp Hợp', 1, 'kết quả');
+        const c = L.changeTo;
+        if (c) {
+          const has = (t) => L.transform.some((x) => x.t === t);
+          add(c.branch, 'Trị biến hào', 4, 'kết quả');
+          if (has('Hóa Tiến Thần')) add(hB, 'Hóa Tiến: gặp Hợp / lúc tăng lực', 4, 'kết quả');
+          if (has('Hóa Thoái Thần')) {
+            add(xB, 'Hóa Thoái: Xung hào động', 4, 'cảnh báo', 'bad');
+            caveats.push('Dụng thần hóa Thoái: xu hướng suy giảm, không nhất thiết mất tác dụng ngay (cẩm nang 3.13).');
+          }
+          if (has('Hồi Đầu Sinh')) add(c.branch, 'Hồi đầu sinh: Trị biến hào (được trợ)', 3, 'trợ lực');
+          if (has('Hồi Đầu Khắc')) add(c.branch, 'Hồi đầu khắc: Trị biến hào (bất lợi)', 3, 'cảnh báo', 'bad');
+          if (c.isVoid) add(c.branch, 'Hóa Không: Điền biến hào', 4, 'tháo gỡ');
+          if (c.monthRel.includes('Nguyệt Phá')) add(c.branch, 'Hóa Phá: Điền thực biến hào', 4, 'tháo gỡ');
+        }
+      } else {
+        add(B, 'Tĩnh mà gặp Trị', 1, 'kết quả');
+        if (strength.score >= 0) add(xB, 'Tĩnh mà gặp Xung (xung khởi)', 1, 'kích hoạt');
+        else add(xB, 'Tĩnh mà suy gặp Xung: dễ thành Xung tán', 4, 'cảnh báo', 'bad');
+      }
+
+      // Vượng suy (cẩm nang 3.3, 3.4)
+      if (strength.level === 'Quá vượng') {
+        add(mo, 'Quá vượng gặp Mộ', 3, 'kết quả');
+        const khacEl = mod(L.el + 3, 5);
+        elDays(khacEl).forEach((b) => add(b, `Quá vượng gặp Khắc (ngày ${ELEMENTS[khacEl]})`, 4, 'kết quả'));
+        caveats.push('Phép “quá vượng gặp Mộ / Xung” chỉ dùng khi quá vượng thực sự là điểm nghẽn.');
+      }
+      if (weak) {
+        const sinhEl = mod(L.el - 1, 5);
+        elDays(sinhEl, L.el).forEach((b) => add(b, `Suy gặp Sinh: ngày hành ${ELEMENTS[sinhEl]} sinh Dụng`, 2, 'trợ lực'));
+        if (L.el !== 2) {
+          add(STAGE_START[L.el], 'Suy gặp Sinh: ngày / tháng Trường sinh', 3, 'trợ lực');
+          add(vuongOf(L.el), `Suy gặp Vượng: ngày / tháng ${ELEMENTS[L.el]} vượng`, 2, 'trợ lực');
+        }
+        conds.push(`Cần được sinh vượng — hành ${ELEMENTS[L.el]} đắc khí vào ${SEASON_OF_EL[L.el]}`);
+      }
+
+      // Kỵ thần động khắc Dụng thần (cẩm nang 3.9, 3.10, 5.2)
+      res.lines
+        .filter((o) => o.moving && o.rel === kyRel && o !== L)
+        .forEach((k) => {
+          const ks = lineStrength(k, res);
+          states.push({ t: `Bị Kỵ thần H${k.pos} ${k.label} động khắc (${ks.level})`, tone: 'bad' });
+          const cheEl = mod(k.el + 3, 5);
+          add(xungOf(k.branch), `Chế Kỵ thần: xung Kỵ H${k.pos}`, 3, 'tháo gỡ');
+          elDays(cheEl).forEach((b) => add(b, `Chế Kỵ thần: ngày hành ${ELEMENTS[cheEl]} khắc Kỵ`, 3, 'tháo gỡ'));
+          add(k.branch, `Kỵ thần H${k.pos} gặp Trị: đề phòng trở ngại`, 3, 'cảnh báo', 'bad');
+          conds.push('Cần chế ngự Kỵ thần');
+          if (weak) caveats.push(`Dụng thần suy lại bị Kỵ thần khắc: đặc biệt đề phòng lúc Kỵ thần được sinh / gặp Trị (cẩm nang 3.10).`);
+        });
+
+      // Nguyên thần (cẩm nang 3.16, 3.17, 5.1)
+      const needHelp = strength.score < 2 || L.isVoid;
+      res.lines
+        .filter((o) => o.rel === ngRel && o !== L)
+        .forEach((n) => {
+          const g = needHelp ? 3 : 4;
+          if (n.moving) {
+            add(n.branch, `Nguyên thần H${n.pos} động gặp Trị`, (L.isThe && L.isVoid) || needHelp ? 3 : 4, 'trợ lực');
+            add(hopOf(n.branch), `Nguyên thần H${n.pos} động gặp Hợp`, 4, 'trợ lực');
+          } else if (needHelp) {
+            add(xungOf(n.branch), `Nguyên thần H${n.pos} tĩnh: gặp Xung để kích hoạt`, g, 'trợ lực');
+            add(n.branch, `Nguyên thần H${n.pos} tĩnh: gặp Trị`, 4, 'trợ lực');
+          }
+          if (n.isVoid && needHelp) add(n.branch, `Nguyên thần H${n.pos} Không: Điền Không`, 4, 'trợ lực');
+        });
+    }
+
+    /* Dấu hiệu phụ (nhóm 5): Độc phát / Độc tĩnh, Tam hợp khuyết một chi, Tam hình */
+    const mp = res.movingPos || [];
+    const subjPos = (L || H).pos;
+    if (mp.length === 1 && mp[0] !== subjPos) {
+      const o = res.lines[mp[0] - 1];
+      add(o.branch, `Độc phát H${o.pos} (manh mối phụ)`, 5, 'phụ');
+      if (o.changeTo) add(o.changeTo.branch, `Biến hào của độc phát H${o.pos}`, 5, 'phụ');
+    }
+    if (mp.length === 5) {
+      const sp = [1, 2, 3, 4, 5, 6].find((p) => !mp.includes(p));
+      if (sp !== subjPos) add(res.lines[sp - 1].branch, `Độc tĩnh H${sp} (manh mối phụ)`, 5, 'phụ');
+    }
+    if (L) {
+      const actives = [];
+      res.lines.forEach((o) => {
+        if (o.moving) {
+          actives.push(o.branch);
+          if (o.changeTo) actives.push(o.changeTo.branch);
+        }
+      });
+      TAM_HOP.forEach((g) => {
+        if (!g.branches.includes(L.branch)) return;
+        if ((res.combos || []).some((c) => c.full && c.el === g.el)) return;
+        const others = g.branches.filter((b) => b !== L.branch);
+        const present = others.filter((b) => actives.includes(b));
+        if (present.length === 1 && (L.moving || actives.includes(L.branch))) {
+          const missing = others.find((b) => !present.includes(b));
+          add(missing, `Tam hợp ${ELEMENTS[g.el]} cục khuyết ${BRANCHES[missing]}: chờ chi còn thiếu`, 5, 'phụ');
+        }
+      });
+      TAM_HINH.forEach((s) => {
+        if (!s.branches.includes(L.branch)) return;
+        const present = s.branches.filter((b) => b !== L.branch && res.lines.some((o) => o.moving && (o.branch === b || (o.changeTo && o.changeTo.branch === b))));
+        if (present.length === 1) {
+          const missing = s.branches.find((b) => b !== L.branch && !present.includes(b));
+          add(missing, `Hoàn thành bộ Tam hình ${s.branches.map((b) => BRANCHES[b]).join(' ')}`, 5, 'cảnh báo', 'bad');
+        }
+      });
+    }
+
+    /* Xếp hạng (cẩm nang 9 – bước 8, 10) */
+    const all = Array.from(cands.values());
+    const main = all.filter((c) => !c.warnOnly).sort((a, b) => b.score - a.score || a.reasons[0].group - b.reasons[0].group);
+    const warns = all.filter((c) => c.warnOnly);
+    const top = main.length ? main[0].score : 0;
+    main.forEach((c, i) => {
+      c.role = i === 0 || c.score >= top * 0.85 ? 'uu-tien' : i < 4 && c.score >= 6 ? 'du-phong' : 'tham-khao';
+    });
+    warns.forEach((c) => (c.role = 'canh-bao'));
+    const items = main.concat(warns);
+    if (!caveats.length) caveats.push('Ngày Trị / Xung / Hợp chỉ là dấu hiệu thời điểm; cát hay hung còn tùy quẻ và vượng suy Dụng thần.');
+    return { subject: L || H, hidden: !!H, pickNote, strength, states, conds: Array.from(new Set(conds)), caveats, extras, items };
   }
 
   /* ---------- Phương pháp lập quẻ ---------- */
@@ -624,6 +1097,6 @@
     TRIGRAMS, RELATIVES, REL_SHORT, BEASTS, STAGES, LINE_NAMES, ORDER_NAMES,
     analyze, hexInfo, godSet, tossCoins, randomHexagram, randomInt,
     fromTrigramNumbers, plumTime, plumNumbers, plumSerial, allHexagrams, branchLabel,
-    isClash, isCombine, generates, controls
+    isClash, isCombine, isHinh, isHai, generates, controls, ungKy, moOf, lineStrength
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

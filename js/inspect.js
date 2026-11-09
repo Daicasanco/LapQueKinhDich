@@ -20,6 +20,8 @@
     khac: { c: '#d7263d', t: 'Khắc' },
     xung: { c: '#ef7d00', t: 'Xung / Phá' },
     hop: { c: '#8e44ad', t: 'Hợp' },
+    hinh: { c: '#a0522d', t: 'Hình' },
+    hai: { c: '#7d6b5d', t: 'Hại' },
     none: { c: '#9a8f82', t: 'Không tác động' }
   };
 
@@ -45,11 +47,13 @@
     if (I.generates(s, d)) out.push({ k: 'sinh', t: 'sinh' });
     else if (I.controls(s, d)) out.push({ k: 'khac', t: 'khắc' });
     else if (s === d) out.push({ k: 'phu', t: srcB === dstB ? 'đồng chi' : 'trợ' });
+    if (I.isHinh(srcB, dstB)) out.push({ k: 'hinh', t: 'hình' });
+    if (I.isHai(srcB, dstB)) out.push({ k: 'hai', t: 'hại' });
     return out;
   }
 
   function kindOfTags(tags) {
-    for (const k of ['xung', 'khac', 'sinh', 'hop', 'phu']) if (tags.some((t) => t.k === k)) return k;
+    for (const k of ['xung', 'khac', 'sinh', 'hop', 'phu', 'hinh', 'hai']) if (tags.some((t) => t.k === k)) return k;
     return 'none';
   }
 
@@ -60,6 +64,8 @@
     if (/Sinh/.test(s)) return 'sinh';
     if (/Hợp/.test(s)) return 'hop';
     if (/Kiến|Lâm|Phù/.test(s)) return 'phu';
+    if (/Hình/.test(s)) return 'hinh';
+    if (/Hại/.test(s)) return 'hai';
     return 'none';
   }
 
@@ -374,7 +380,7 @@
   const chip = (text, tone) => `<span class="chip ${tone || ''}">${esc(text)}</span>`;
 
   function legendHTML() {
-    const kinds = ['sinh', 'phu', 'khac', 'xung', 'hop'].map((k) => `<span class="lg-item"><i style="background:${KIND[k].c}"></i>${KIND[k].t}</span>`).join('');
+    const kinds = ['sinh', 'phu', 'khac', 'xung', 'hop', 'hinh', 'hai'].map((k) => `<span class="lg-item"><i style="background:${KIND[k].c}"></i>${KIND[k].t}</span>`).join('');
     const els = ELEMENTS.map((e, i) => `<span class="lg-item"><i class="round" style="background:${ELC[i]}"></i>${e}</span>`).join('');
     return `<div class="hp-legend"><div>${kinds}</div><div>${els}</div>
       <div class="lg-note">Thẻ trên hàng: <b>H5 khắc</b> = hào 5 khắc hào đó · <b>khắc H5</b> = hào đó (động) khắc hào 5 · <b>B5 khắc</b> = hào biến của hào 5 khắc hào đó</div></div>`;

@@ -20,6 +20,8 @@ Triển khai: chép cả thư mục lên bất kỳ host tĩnh nào (GitHub Page
 - Phân tích chi tiết: quẻ hỗ, Lục xung/Lục hợp, Du hồn/Quy hồn, Phục ngâm/Phản ngâm; tứ trụ, tiết khí (giờ giao tiết), Dụng – Nguyên – Kỵ – Cừu thần; từng hào với Nhật/Nguyệt sinh khắc xung hợp, Ám động, vòng Trường sinh; biến hóa hào động (hồi đầu sinh/khắc, tiến/thoái thần, hóa không/mộ/tuyệt…); bảng thần sát.
 - Lưu ảnh PNG, In/PDF, sao chép liên kết (quẻ mã hóa trong URL), sao chép dạng chữ, lịch sử lưu trong trình duyệt.
 - Rê chuột vào tên quẻ chủ / quẻ biến trên lá quẻ để đọc Tổng quan – Quẻ tượng – Lục hào tượng (An Hạ, *Dịch kinh Chân tủy – Lục hào Tượng giải*). Phần bản OCR bị thiếu được chép tay vào `tools/que-tuong-bo-sung.js` (Hỏa Địa Tấn, Thủy Hỏa Ký Tế, Lục hào tượng của Thiên Thủy Tụng) — đủ 64 quẻ.
+- **Ứng kỳ** theo *Cẩm nang ứng kỳ Lục Hào* (Tăng San Bốc Dịch): hồ sơ Dụng thần (vượng suy chấm điểm, Tuần Không Chân/Giả/Động, Nguyệt phá có/không cứu, Nhật mộ/Động mộ/Hóa mộ, hợp trói/hợp trợ, Tuyệt, Xung khởi/Xung tán, Kỵ thần khắc), danh sách chi ứng viên xếp hạng Ưu tiên / Dự phòng / Tham khảo / Cảnh báo kèm ngày, tháng, năm gần nhất; mốc Xuất Không, Qua tháng phá; nút mở trang Tra ngày.
+- **Hợp cục · Hình hại · Mộ · Phục thần**: tam hợp / bán hợp cục, tam hình, lục hại, nhập mộ, tùy quỷ nhập mộ, độc phát / độc tĩnh / loạn động, kết luận phục thần hữu dụng / vô dụng.
 - **Tra ngày theo Can Chi** (`tra-ngay.html`): chọn can/chi của ngày, tháng, năm, giờ (hoặc gõ nhanh “ngày ất mão tháng tỵ”) để liệt kê các ngày dương lịch khớp, kèm âm lịch, tiết khí, khoảng cách tới hôm nay. Tháng/năm tính theo tiết khí (Lục Hào) hoặc theo âm lịch; ngày giao tiết hiển thị giờ đổi tháng.
 
 ## Cấu trúc
