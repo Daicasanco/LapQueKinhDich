@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lập Quẻ Lục Hào</title>
+  <meta name="description" content="Lập quẻ Lục Hào trực tuyến: số ngẫu nhiên, gieo xu, Mai Hoa theo thời gian/số, tự chọn hào. An nạp giáp, lục thân, lục thú, thế ứng, phục thần, tuần không, vượng suy, thần sát.">
+  <meta name="theme-color" content="#7d1f22">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-10 -10 20 20'%3E%3Ccircle r='9.5' fill='%23fff' stroke='%23a3262b'/%3E%3Cpath d='M0,-9.5A9.5,9.5 0 0,1 0,9.5A4.75,4.75 0 0,1 0,0A4.75,4.75 0 0,0 0,-9.5Z' fill='%23a3262b'/%3E%3Ccircle cy='-4.75' r='1.4' fill='%23a3262b'/%3E%3Ccircle cy='4.75' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Serif:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-in">
+      <a class="brand" href="./" aria-label="Trang chủ Lập Quẻ Lục Hào">
+        <span class="brand-mark" id="brandMark" aria-hidden="true"></span>
+        <span class="brand-text"><b>Lập Quẻ Lục Hào</b><small>Nạp giáp · Lục thân · Lục thú · Thần sát</small></span>
+      </a>
+      <nav class="topnav" aria-label="Điều hướng">
+        <a href="#cast" aria-current="page">Lập quẻ</a>
+        <a href="tra-ngay.html">Tra ngày</a>
+        <a href="#history">Lịch sử</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ============ FORM LẬP QUẺ ============ -->
+    <section class="card cast" id="cast" aria-labelledby="castTitle">
+      <h2 class="card-title" id="castTitle">Lập quẻ</h2>
+      <div class="cast-grid">
+        <div class="cast-col">
+          <div class="field">
+            <label class="label" for="question">Việc cần xem</label>
+            <input id="question" type="text" maxlength="200" autocomplete="off" placeholder="Ví dụ: Việc ký hợp đồng tháng này có thuận lợi?">
+          </div>
+
+          <div class="field">
+            <span class="label" id="timeLabel">Thời gian lập quẻ</span>
+            <div class="time-modes" role="radiogroup" aria-labelledby="timeLabel">
+              <label class="radio"><input type="radio" name="timemode" value="now" checked> Hiện tại <span class="clock" id="clock"></span></label>
+              <label class="radio"><input type="radio" name="timemode" value="custom"> Chọn thời điểm</label>
+            </div>
+            <input id="customTime" type="datetime-local" step="1" hidden aria-label="Thời điểm lập quẻ">
+            <div class="time-preview" id="timePreview" aria-live="polite"></div>
+            <label class="check"><input type="checkbox" id="rollover" checked> Từ 23h tính sang ngày hôm sau (giờ Tý)</label>
+          </div>
+        </div>
+
+        <div class="cast-col">
+          <div class="field">
+            <span class="label" id="methodLabel">Phương pháp lập quẻ</span>
+            <div class="tabs" role="tablist" aria-labelledby="methodLabel">
+              <button type="button" role="tab" class="tab" data-method="serial" aria-selected="true" aria-controls="panel-serial">Số serial</button>
+              <button type="button" role="tab" class="tab" data-method="coin" aria-selected="false" aria-controls="panel-coin" tabindex="-1">Gieo xu</button>
+              <button type="button" role="tab" class="tab" data-method="time" aria-selected="false" aria-controls="panel-time" tabindex="-1">Theo thời gian</button>
+              <button type="button" role="tab" class="tab" data-method="number" aria-selected="false" aria-controls="panel-number" tabindex="-1">Theo số</button>
+              <button type="button" role="tab" class="tab" data-method="manual" aria-selected="false" aria-controls="panel-manual" tabindex="-1">Tự chọn hào</button>
+            </div>
+
+            <div class="panel" id="panel-serial" role="tabpanel">
+              <p class="hint">Nhập dãy số serial (số seri tờ tiền, hoặc dãy số bất kỳ hiện ra trong đầu). Nửa đầu cộng lại chia 8 lấy <b>Thượng quái</b>, nửa sau cộng lại chia 8 lấy <b>Hạ quái</b>, tổng tất cả chia 6 lấy <b>hào động</b>. Dãy lẻ thì nửa đầu ít hơn một số; ký tự chữ được bỏ qua.</p>
+              <div class="serial-row">
+                <input id="serial" type="text" inputmode="numeric" autocomplete="off" maxlength="40" placeholder="vd. 24002019" aria-label="Số serial">
+                <button type="button" class="btn ghost" id="serialRandom">Số ngẫu nhiên</button>
+              </div>
+              <div class="formula" id="plumSerial"></div>
+            </div>
+
+            <div class="panel" id="panel-coin" role="tabpanel" hidden>
+              <p class="hint">Gieo 3 đồng xu 6 lần, từ hào Sơ (dưới cùng) lên hào Thượng. Mặt dương = 3, mặt âm = 2:
+                3 dương → <b>Lão dương</b> (O, động) · 3 âm → <b>Lão âm</b> (X, động) · 1 dương 2 âm → Thiếu dương · 2 dương 1 âm → Thiếu âm.</p>
+              <div class="coin-stage">
+                <div class="coins" id="coins" aria-live="polite">
+                  <div class="coinwrap"><div class="coin" data-face="yang"><span></span></div><small>&nbsp;</small></div>
+                  <div class="coinwrap"><div class="coin" data-face="yang"><span></span></div><small>&nbsp;</small></div>
+                  <div class="coinwrap"><div class="coin" data-face="yang"><span></span></div><small>&nbsp;</small></div>
+                </div>
+                <ol class="coin-build" id="coinBuild" reversed></ol>
+              </div>
+              <div class="btn-row">
+                <button type="button" class="btn" id="tossBtn">Gieo hào Sơ</button>
+                <button type="button" class="btn ghost" id="tossAuto">Gieo nhanh</button>
+                <button type="button" class="btn ghost" id="tossReset">Làm lại</button>
+              </div>
+            </div>
+
+            <div class="panel" id="panel-time" role="tabpanel" hidden>
+              <p class="hint">Mai Hoa Dịch Số theo thời gian: (chi năm + tháng âm + ngày âm) chia 8 lấy Thượng quái; cộng thêm chi giờ chia 8 lấy Hạ quái; tổng chia 6 lấy hào động.</p>
+              <div class="formula" id="plumTime"></div>
+            </div>
+
+            <div class="panel" id="panel-number" role="tabpanel" hidden>
+              <p class="hint">Nghĩ ra hoặc nhận 2 số bất kỳ. Số thứ nhất chia 8 lấy Thượng quái, số thứ hai chia 8 lấy Hạ quái; (số 1 + số 2 + chi giờ) chia 6 lấy hào động.</p>
+              <div class="num-row">
+                <label>Số thứ nhất<input id="numA" type="number" inputmode="numeric" min="1" step="1" placeholder="vd. 27"></label>
+                <label>Số thứ hai<input id="numB" type="number" inputmode="numeric" min="1" step="1" placeholder="vd. 14"></label>
+              </div>
+              <div class="formula" id="plumNumber"></div>
+            </div>
+
+            <div class="panel" id="panel-manual" role="tabpanel" hidden>
+              <label class="label sm" for="quickHex">Chọn nhanh quẻ chủ</label>
+              <select id="quickHex"><option value="">— Chọn trong 64 quẻ —</option></select>
+              <p class="hint">Bấm chọn trạng thái từng hào (từ trên xuống: hào Thượng → hào Sơ).</p>
+              <div class="manual" id="manualRows"></div>
+              <div class="formula" id="manualPreview"></div>
+            </div>
+          </div>
+
+          <div class="cast-actions">
+            <button type="button" class="btn primary big" id="castBtn">Lập quẻ</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ KẾT QUẢ ============ -->
+    <section class="result" id="result" hidden aria-label="Kết quả lập quẻ">
+      <div class="result-bar">
+        <h2 class="card-title">Lá quẻ</h2>
+        <div class="btn-row">
+          <button type="button" class="btn" id="btnPng">Lưu ảnh PNG</button>
+          <button type="button" class="btn ghost" id="btnLink">Sao chép liên kết</button>
+          <button type="button" class="btn ghost" id="btnText">Sao chép dạng chữ</button>
+          <button type="button" class="btn ghost" id="btnFit" hidden>Xem cỡ thật</button>
+          <button type="button" class="btn ghost" id="btnPrint">In</button>
+          <button type="button" class="btn ghost" id="btnNew">Lập quẻ mới</button>
+        </div>
+      </div>
+      <div class="result-stage">
+        <div class="chart-col">
+          <div class="chart-scroll"><div class="chart" id="chart"></div></div>
+          <p class="scroll-hint" id="scrollHint" hidden>Vuốt ngang để xem toàn bộ lá quẻ.</p>
+          <p class="ins-hint">Rê chuột (hoặc chạm) vào một hào để soi chi tiết, vào tên quẻ để đọc giải quẻ; bấm để ghim.</p>
+        </div>
+        <aside class="hao-panel" id="haoPanel" aria-live="polite" aria-label="Chi tiết hào"></aside>
+      </div>
+      <div class="details" id="details"></div>
+    </section>
+
+    <!-- ============ LỊCH SỬ ============ -->
+    <section class="card history" id="history" aria-labelledby="histTitle">
+      <div class="result-bar">
+        <h2 class="card-title" id="histTitle">Lịch sử quẻ</h2>
+        <button type="button" class="btn ghost sm" id="histClear">Xóa lịch sử</button>
+      </div>
+      <ul class="hist-list" id="histList"></ul>
+      <p class="muted" id="histEmpty">Chưa có quẻ nào. Các quẻ đã lập được lưu trên trình duyệt này.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Lập Quẻ Lục Hào — công cụ tham khảo. Lịch âm theo múi giờ Việt Nam (UTC+7).</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/lunar.js"></script>
+  <script src="js/iching.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/que-tuong.js"></script>
+  <script src="js/inspect.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

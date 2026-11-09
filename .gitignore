@@ -1,0 +1,9 @@
+# Bản OCR toàn bộ sách: chỉ dùng để chạy tools/build-que-tuong.js trên máy, không đưa lên repo
+*OCR*.md
+*_OCR.md
+
+# Linh tinh
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
