@@ -735,6 +735,8 @@
     const extras = [];
     const db = cal.pillars.day.branch;
     const mbr = cal.pillars.month.branch;
+    const N = (b) => BRANCHES[b];
+    const E = (el) => ELEMENTS[el];
 
     /* 1. Xác định Dụng thần (lưỡng hiện: chọn một hào chính) */
     let L = null;
@@ -766,17 +768,17 @@
       strength = { score: v.ok ? 1 : -1, level: v.ok ? 'Có lực' : 'Vô lực', why: v.good.concat(v.bad) };
       states.push({ t: `Phục dưới hào ${H.pos} (phi thần ${fly.relName} ${fly.label})`, tone: '' });
       states.push({ t: v.ok ? 'Phục thần hữu dụng' : 'Phục thần vô dụng — khó xuất', tone: v.ok ? 'good' : 'bad' });
-      add(H.branch, 'Phục thần gặp Trị', 1, 'kết quả');
-      add(xungOf(fly.branch), `Xung phi lộ phục: xung phi thần ${BRANCHES[fly.branch]}`, 2, 'tháo gỡ');
-      add(hopOf(H.branch), 'Phục thần gặp Hợp', 3, 'trợ lực');
+      add(H.branch, `Phục thần gặp Trị: ngày / tháng ${N(H.branch)}`, 1, 'kết quả');
+      add(xungOf(fly.branch), `Xung phi lộ phục: ngày / tháng ${N(xungOf(fly.branch))} xung phi thần ${N(fly.branch)}`, 2, 'tháo gỡ');
+      add(hopOf(H.branch), `Phục thần gặp Hợp: ngày / tháng ${N(hopOf(H.branch))} (hợp ${N(H.branch)})`, 3, 'trợ lực');
       conds.push('Cần Phục thần gặp Trị, hoặc Phi thần bị Xung / khắc / suy để Phục thần lộ ra');
       if (H.isVoid) {
-        add(xungOf(H.branch), 'Phục thần Tuần Không: Xung Không', 2, 'tháo gỡ');
+        add(xungOf(H.branch), `Phục thần Tuần Không — Xung Không: ngày / tháng ${N(xungOf(H.branch))}`, 2, 'tháo gỡ');
         extras.push({ type: 'xuatKhong', label: 'Phục thần xuất Không' });
       }
-      if (stageOf(H.el, db) === 8) add(xungOf(moOf(H.el)), 'Phục thần nhập Nhật mộ: Xung mộ', 2, 'tháo gỡ');
+      if (stageOf(H.el, db) === 8) add(xungOf(moOf(H.el)), `Phục thần nhập Nhật mộ — Xung Mộ: ngày / tháng ${N(xungOf(moOf(H.el)))} xung ${N(moOf(H.el))}`, 2, 'tháo gỡ');
       if (!v.ok) {
-        elDays(mod(H.el - 1, 5), H.el).forEach((b) => add(b, `Phục thần suy: ngày hành sinh phục (${ELEMENTS[mod(H.el - 1, 5)]})`, 3, 'trợ lực'));
+        elDays(mod(H.el - 1, 5), H.el).forEach((b) => add(b, `Phục thần suy — gặp Sinh: ngày / tháng ${N(b)} (${E(mod(H.el - 1, 5))} sinh ${E(H.el)})`, 3, 'trợ lực'));
         caveats.push('Phục thần vô lực: dù Phi thần bị Xung cũng chưa chắc dùng được (cẩm nang 7.1).');
       }
       if (fly.isVoid || fly.monthRel.includes('Nguyệt Phá') || fly.dayRel.includes('Nhật Xung')) {
@@ -796,8 +798,8 @@
         const kind = L.moving ? 'Động Không' : strength.score >= 1 ? 'Giả Không' : 'Chân Không';
         const note = { 'Động Không': 'động bất vi không', 'Giả Không': 'vượng / được sinh trợ', 'Chân Không': 'suy, thiếu trợ lực' }[kind];
         states.push({ t: `Tuần Không — ${kind} (${note})`, tone: kind === 'Chân Không' ? 'bad' : 'warn' });
-        add(B, 'Điền Không: gặp ngày / tháng Trị', 2, 'tháo gỡ');
-        add(xB, 'Xung Không: gặp ngày / tháng Xung', 2, 'tháo gỡ');
+        add(B, `Điền Không: gặp ngày / tháng ${N(B)} (Trị)`, 2, 'tháo gỡ');
+        add(xB, `Xung Không: gặp ngày / tháng ${N(xB)} (xung ${N(B)})`, 2, 'tháo gỡ');
         extras.push({ type: 'xuatKhong', label: 'Xuất Không' });
         conds.push('Cần Điền Không, Xung Không hoặc Xuất Không');
         if (kind === 'Chân Không') caveats.push('Dụng thần Chân Không: dù gặp ngày Điền / Xung hay xuất tuần cũng khó thành nếu không được sinh trợ.');
@@ -806,8 +808,8 @@
       if (L.monthRel.includes('Nguyệt Phá')) {
         const cuu = L.dayRel.some((r) => /Sinh|Phù|Lâm/.test(r)) || res.lines.some((o) => o.moving && o !== L && generates(o.el, L.el));
         states.push({ t: `Nguyệt Phá — ${cuu ? 'có cứu (được Nhật / động hào sinh phù)' : 'không cứu'}`, tone: cuu ? 'warn' : 'bad' });
-        add(B, 'Nguyệt phá: Điền thực (tháng / ngày Trị)', 2, 'tháo gỡ');
-        add(hB, 'Nguyệt phá: phá mà gặp Hợp', 2, 'tháo gỡ');
+        add(B, `Nguyệt phá — Điền thực: tháng / ngày ${N(B)}`, 2, 'tháo gỡ');
+        add(hB, `Nguyệt phá — gặp Hợp: ngày / tháng ${N(hB)} (hợp ${N(B)})`, 2, 'tháo gỡ');
         extras.push({ type: 'quaThang', label: 'Qua tháng phá' });
         conds.push('Cần Điền thực, gặp Hợp hoặc qua tháng phá');
       }
@@ -820,8 +822,8 @@
       if (L.moving && L.changeTo && L.changeTo.branch === mo) moTypes.push('Hóa mộ');
       if (moTypes.length) {
         states.push({ t: `Nhập Mộ ${BRANCHES[mo]} — ${moTypes.join(', ')}`, tone: 'bad' });
-        add(xungOf(mo), `Xung Mộ: ${BRANCHES[xungOf(mo)]} xung ${BRANCHES[mo]} mở kho`, 2, 'tháo gỡ');
-        add(B, 'Trị hào để xuất Mộ', 4, 'kết quả');
+        add(xungOf(mo), `Xung Mộ: ngày / tháng ${N(xungOf(mo))} xung ${N(mo)} mở kho`, 2, 'tháo gỡ');
+        add(B, `Xuất Mộ: gặp ngày / tháng ${N(B)} (Trị)`, 4, 'kết quả');
         conds.push(`Cần Xung khai Mộ (ngày / tháng ${BRANCHES[xungOf(mo)]})`);
       }
       // Hợp: động mà bị hợp = hợp trói; tĩnh được hợp = có thể là hợp trợ / hợp khởi
@@ -836,12 +838,12 @@
         const who = binders.map((x) => `${x.label} ${BRANCHES[x.b]}`).join(', ');
         if (L.moving) {
           states.push({ t: `Hợp trói — động mà bị hợp (${who})`, tone: 'warn' });
-          add(xB, 'Xung mở Hợp: xung Dụng thần', 2, 'tháo gỡ');
-          binders.forEach((x) => add(xungOf(x.b), `Xung mở Hợp: xung ${x.label} ${BRANCHES[x.b]}`, 2, 'tháo gỡ'));
+          add(xB, `Xung mở Hợp: ngày / tháng ${N(xB)} xung Dụng thần ${N(B)}`, 2, 'tháo gỡ');
+          binders.forEach((x) => add(xungOf(x.b), `Xung mở Hợp: ngày / tháng ${N(xungOf(x.b))} xung ${x.label} ${N(x.b)}`, 2, 'tháo gỡ'));
           conds.push('Cần Xung mở Hợp');
         } else {
           states.push({ t: `Được hợp (${who}) — có thể là hợp trợ / hợp khởi`, tone: '' });
-          add(xB, 'Nếu là hợp giữ: chờ Xung mở', 5, 'tháo gỡ');
+          add(xB, `Nếu là hợp giữ — Xung mở: ngày / tháng ${N(xB)}`, 5, 'tháo gỡ');
           caveats.push('Dụng thần tĩnh được hợp: hợp có thể là hợp trợ, không mặc định phải chờ ngày Xung (cẩm nang 3.6).');
         }
       }
@@ -849,14 +851,14 @@
       const tuyet = stageOf(L.el, db) === 9 ? 'Tuyệt tại Nhật' : L.moving && L.changeTo && stageOf(L.el, L.changeTo.branch) === 9 ? 'Hóa Tuyệt' : '';
       if (tuyet) {
         states.push({ t: tuyet, tone: 'bad' });
-        add(STAGE_START[L.el], 'Tuyệt gặp Sinh: ngày / tháng Trường sinh', 2, 'trợ lực');
+        add(STAGE_START[L.el], `Tuyệt gặp Sinh: ngày / tháng ${N(STAGE_START[L.el])} (Trường sinh của ${E(L.el)})`, 2, 'trợ lực');
         conds.push('Cần gặp Trường sinh / được sinh trợ');
       }
       // Nhật xung hào tĩnh: Xung khởi (ám động) / Xung tán
       if (!L.moving && L.dayRel.includes('Nhật Xung')) {
         if (strength.score >= 1) {
           states.push({ t: 'Ám động — Nhật xung khởi', tone: 'good' });
-          add(hB, 'Ám động: gặp Hợp', 4, 'kết quả');
+          add(hB, `Ám động gặp Hợp: ngày / tháng ${N(hB)}`, 4, 'kết quả');
         } else {
           states.push({ t: 'Xung tán — suy mà bị Nhật xung', tone: 'bad' });
           caveats.push('Dụng thần suy bị Nhật xung (xung tán): ngày Trị / Xung dễ chỉ là lúc sự việc tan rã.');
@@ -866,41 +868,41 @@
       // Điều kiện trực tiếp theo động / tĩnh (cẩm nang 3.1, 3.2, 4.1, 4.2)
       const tiedUp = L.moving && binders.length;
       if (L.moving) {
-        add(B, 'Động mà gặp Trị', 1, 'kết quả');
-        if (!tiedUp) add(hB, 'Động mà gặp Hợp', 1, 'kết quả');
+        add(B, `Động mà gặp Trị: ngày / tháng ${N(B)}`, 1, 'kết quả');
+        if (!tiedUp) add(hB, `Động mà gặp Hợp: ngày / tháng ${N(hB)} (hợp ${N(B)})`, 1, 'kết quả');
         const c = L.changeTo;
         if (c) {
           const has = (t) => L.transform.some((x) => x.t === t);
-          add(c.branch, 'Trị biến hào', 4, 'kết quả');
-          if (has('Hóa Tiến Thần')) add(hB, 'Hóa Tiến: gặp Hợp / lúc tăng lực', 4, 'kết quả');
+          add(c.branch, `Trị biến hào: ngày / tháng ${N(c.branch)}`, 4, 'kết quả');
+          if (has('Hóa Tiến Thần')) add(hB, `Hóa Tiến gặp Hợp: ngày / tháng ${N(hB)}`, 4, 'kết quả');
           if (has('Hóa Thoái Thần')) {
-            add(xB, 'Hóa Thoái: Xung hào động', 4, 'cảnh báo', 'bad');
+            add(xB, `Hóa Thoái — Xung hào động: ngày / tháng ${N(xB)}`, 4, 'cảnh báo', 'bad');
             caveats.push('Dụng thần hóa Thoái: xu hướng suy giảm, không nhất thiết mất tác dụng ngay (cẩm nang 3.13).');
           }
-          if (has('Hồi Đầu Sinh')) add(c.branch, 'Hồi đầu sinh: Trị biến hào (được trợ)', 3, 'trợ lực');
-          if (has('Hồi Đầu Khắc')) add(c.branch, 'Hồi đầu khắc: Trị biến hào (bất lợi)', 3, 'cảnh báo', 'bad');
-          if (c.isVoid) add(c.branch, 'Hóa Không: Điền biến hào', 4, 'tháo gỡ');
-          if (c.monthRel.includes('Nguyệt Phá')) add(c.branch, 'Hóa Phá: Điền thực biến hào', 4, 'tháo gỡ');
+          if (has('Hồi Đầu Sinh')) add(c.branch, `Hồi đầu sinh — Trị biến hào: ngày / tháng ${N(c.branch)} (được trợ)`, 3, 'trợ lực');
+          if (has('Hồi Đầu Khắc')) add(c.branch, `Hồi đầu khắc — Trị biến hào: ngày / tháng ${N(c.branch)} (bất lợi)`, 3, 'cảnh báo', 'bad');
+          if (c.isVoid) add(c.branch, `Hóa Không — Điền biến hào: ngày / tháng ${N(c.branch)}`, 4, 'tháo gỡ');
+          if (c.monthRel.includes('Nguyệt Phá')) add(c.branch, `Hóa Phá — Điền thực biến hào: tháng / ngày ${N(c.branch)}`, 4, 'tháo gỡ');
         }
       } else {
-        add(B, 'Tĩnh mà gặp Trị', 1, 'kết quả');
-        if (strength.score >= 0) add(xB, 'Tĩnh mà gặp Xung (xung khởi)', 1, 'kích hoạt');
-        else add(xB, 'Tĩnh mà suy gặp Xung: dễ thành Xung tán', 4, 'cảnh báo', 'bad');
+        add(B, `Tĩnh mà gặp Trị: ngày / tháng ${N(B)}`, 1, 'kết quả');
+        if (strength.score >= 0) add(xB, `Tĩnh mà gặp Xung: ngày / tháng ${N(xB)} xung ${N(B)} (xung khởi)`, 1, 'kích hoạt');
+        else add(xB, `Tĩnh mà suy gặp Xung: ngày / tháng ${N(xB)} dễ thành Xung tán`, 4, 'cảnh báo', 'bad');
       }
 
       // Vượng suy (cẩm nang 3.3, 3.4)
       if (strength.level === 'Quá vượng') {
-        add(mo, 'Quá vượng gặp Mộ', 3, 'kết quả');
+        add(mo, `Quá vượng gặp Mộ: ngày / tháng ${N(mo)} (Mộ của ${E(L.el)})`, 3, 'kết quả');
         const khacEl = mod(L.el + 3, 5);
-        elDays(khacEl).forEach((b) => add(b, `Quá vượng gặp Khắc (ngày ${ELEMENTS[khacEl]})`, 4, 'kết quả'));
+        elDays(khacEl).forEach((b) => add(b, `Quá vượng gặp Khắc: ngày / tháng ${N(b)} (${E(khacEl)} khắc ${E(L.el)})`, 4, 'kết quả'));
         caveats.push('Phép “quá vượng gặp Mộ / Xung” chỉ dùng khi quá vượng thực sự là điểm nghẽn.');
       }
       if (weak) {
         const sinhEl = mod(L.el - 1, 5);
-        elDays(sinhEl, L.el).forEach((b) => add(b, `Suy gặp Sinh: ngày hành ${ELEMENTS[sinhEl]} sinh Dụng`, 2, 'trợ lực'));
+        elDays(sinhEl, L.el).forEach((b) => add(b, `Suy gặp Sinh: ngày / tháng ${N(b)} (${E(sinhEl)} sinh ${E(L.el)})`, 2, 'trợ lực'));
         if (L.el !== 2) {
-          add(STAGE_START[L.el], 'Suy gặp Sinh: ngày / tháng Trường sinh', 3, 'trợ lực');
-          add(vuongOf(L.el), `Suy gặp Vượng: ngày / tháng ${ELEMENTS[L.el]} vượng`, 2, 'trợ lực');
+          if (!tuyet) add(STAGE_START[L.el], `Suy gặp Sinh: ngày / tháng ${N(STAGE_START[L.el])} (Trường sinh của ${E(L.el)})`, 3, 'trợ lực');
+          add(vuongOf(L.el), `Suy gặp Vượng: ngày / tháng ${N(vuongOf(L.el))} (${E(L.el)} vượng)`, 2, 'trợ lực');
         }
         conds.push(`Cần được sinh vượng — hành ${ELEMENTS[L.el]} đắc khí vào ${SEASON_OF_EL[L.el]}`);
       }
@@ -912,9 +914,9 @@
           const ks = lineStrength(k, res);
           states.push({ t: `Bị Kỵ thần H${k.pos} ${k.label} động khắc (${ks.level})`, tone: 'bad' });
           const cheEl = mod(k.el + 3, 5);
-          add(xungOf(k.branch), `Chế Kỵ thần: xung Kỵ H${k.pos}`, 3, 'tháo gỡ');
-          elDays(cheEl).forEach((b) => add(b, `Chế Kỵ thần: ngày hành ${ELEMENTS[cheEl]} khắc Kỵ`, 3, 'tháo gỡ'));
-          add(k.branch, `Kỵ thần H${k.pos} gặp Trị: đề phòng trở ngại`, 3, 'cảnh báo', 'bad');
+          add(xungOf(k.branch), `Chế Kỵ thần: ngày / tháng ${N(xungOf(k.branch))} xung Kỵ H${k.pos} ${N(k.branch)}`, 3, 'tháo gỡ');
+          elDays(cheEl).forEach((b) => add(b, `Chế Kỵ thần: ngày / tháng ${N(b)} (${E(cheEl)} khắc Kỵ ${E(k.el)})`, 3, 'tháo gỡ'));
+          add(k.branch, `Kỵ thần H${k.pos} gặp Trị: ngày / tháng ${N(k.branch)} — đề phòng trở ngại`, 3, 'cảnh báo', 'bad');
           conds.push('Cần chế ngự Kỵ thần');
           if (weak) caveats.push(`Dụng thần suy lại bị Kỵ thần khắc: đặc biệt đề phòng lúc Kỵ thần được sinh / gặp Trị (cẩm nang 3.10).`);
         });
@@ -926,13 +928,13 @@
         .forEach((n) => {
           const g = needHelp ? 3 : 4;
           if (n.moving) {
-            add(n.branch, `Nguyên thần H${n.pos} động gặp Trị`, (L.isThe && L.isVoid) || needHelp ? 3 : 4, 'trợ lực');
-            add(hopOf(n.branch), `Nguyên thần H${n.pos} động gặp Hợp`, 4, 'trợ lực');
+            add(n.branch, `Nguyên thần H${n.pos} động gặp Trị: ngày / tháng ${N(n.branch)}`, (L.isThe && L.isVoid) || needHelp ? 3 : 4, 'trợ lực');
+            add(hopOf(n.branch), `Nguyên thần H${n.pos} động gặp Hợp: ngày / tháng ${N(hopOf(n.branch))}`, 4, 'trợ lực');
           } else if (needHelp) {
-            add(xungOf(n.branch), `Nguyên thần H${n.pos} tĩnh: gặp Xung để kích hoạt`, g, 'trợ lực');
-            add(n.branch, `Nguyên thần H${n.pos} tĩnh: gặp Trị`, 4, 'trợ lực');
+            add(xungOf(n.branch), `Nguyên thần H${n.pos} tĩnh gặp Xung: ngày / tháng ${N(xungOf(n.branch))} (kích hoạt)`, g, 'trợ lực');
+            add(n.branch, `Nguyên thần H${n.pos} tĩnh gặp Trị: ngày / tháng ${N(n.branch)}`, 4, 'trợ lực');
           }
-          if (n.isVoid && needHelp) add(n.branch, `Nguyên thần H${n.pos} Không: Điền Không`, 4, 'trợ lực');
+          if (n.isVoid && needHelp) add(n.branch, `Nguyên thần H${n.pos} Không — Điền Không: ngày / tháng ${N(n.branch)}`, 4, 'trợ lực');
         });
     }
 
@@ -941,12 +943,12 @@
     const subjPos = (L || H).pos;
     if (mp.length === 1 && mp[0] !== subjPos) {
       const o = res.lines[mp[0] - 1];
-      add(o.branch, `Độc phát H${o.pos} (manh mối phụ)`, 5, 'phụ');
-      if (o.changeTo) add(o.changeTo.branch, `Biến hào của độc phát H${o.pos}`, 5, 'phụ');
+      add(o.branch, `Độc phát H${o.pos}: ngày / tháng ${N(o.branch)} (manh mối phụ)`, 5, 'phụ');
+      if (o.changeTo) add(o.changeTo.branch, `Biến hào của độc phát H${o.pos}: ngày / tháng ${N(o.changeTo.branch)}`, 5, 'phụ');
     }
     if (mp.length === 5) {
       const sp = [1, 2, 3, 4, 5, 6].find((p) => !mp.includes(p));
-      if (sp !== subjPos) add(res.lines[sp - 1].branch, `Độc tĩnh H${sp} (manh mối phụ)`, 5, 'phụ');
+      if (sp !== subjPos) add(res.lines[sp - 1].branch, `Độc tĩnh H${sp}: ngày / tháng ${N(res.lines[sp - 1].branch)} (manh mối phụ)`, 5, 'phụ');
     }
     if (L) {
       const actives = [];
@@ -963,7 +965,7 @@
         const present = others.filter((b) => actives.includes(b));
         if (present.length === 1 && (L.moving || actives.includes(L.branch))) {
           const missing = others.find((b) => !present.includes(b));
-          add(missing, `Tam hợp ${ELEMENTS[g.el]} cục khuyết ${BRANCHES[missing]}: chờ chi còn thiếu`, 5, 'phụ');
+          add(missing, `Tam hợp ${E(g.el)} cục khuyết ${N(missing)}: chờ ngày / tháng ${N(missing)}`, 5, 'phụ');
         }
       });
       TAM_HINH.forEach((s) => {
@@ -971,7 +973,7 @@
         const present = s.branches.filter((b) => b !== L.branch && res.lines.some((o) => o.moving && (o.branch === b || (o.changeTo && o.changeTo.branch === b))));
         if (present.length === 1) {
           const missing = s.branches.find((b) => b !== L.branch && !present.includes(b));
-          add(missing, `Hoàn thành bộ Tam hình ${s.branches.map((b) => BRANCHES[b]).join(' ')}`, 5, 'cảnh báo', 'bad');
+          add(missing, `Hoàn thành bộ Tam hình ${s.branches.map((b) => N(b)).join(' ')}: ngày / tháng ${N(missing)}`, 5, 'cảnh báo', 'bad');
         }
       });
     }
