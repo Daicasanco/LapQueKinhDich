@@ -549,54 +549,96 @@
     });
   }
 
+  // Chụp lá quẻ thành ảnh. compact = chỉ giữ phần như mẫu "Sao chép ảnh quẻ":
+  // Can Chi, Tiết khí, Phương pháp, hai quẻ và bảng chính (bỏ tên trang, Việc cần xem,
+  // Thời gian lập quẻ, logo, bảng V-S / thần sát và dòng chân trang)
+  async function renderChartBlob(compact) {
+    if (!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const canvas = await window.html2canvas($('#chart'), {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: Math.max(window.innerWidth, 1200),
+      onclone: (doc) => {
+        const sc = doc.querySelector('.chart-scroll');
+        if (sc) sc.style.overflow = 'visible';
+        const ch = doc.querySelector('#chart');
+        if (!ch) return;
+        ch.style.zoom = '';
+        ch.classList.remove('ins-on', 'ins-bien');
+        ch.querySelectorAll('.ins-svg').forEach((n) => n.remove());
+        ch.querySelectorAll('.ins-focus, .ins-rel, .ins-active').forEach((n) => n.classList.remove('ins-focus', 'ins-rel', 'ins-active'));
+        if (compact) {
+          ch.querySelectorAll('.ch-brand, .ch-emblem, .ch-sub, .ch-foot').forEach((n) => n.remove());
+          // Ẩn (không xóa) để giữ thứ tự dòng cho CSS căn cột: Việc cần xem, Thời gian lập quẻ
+          const rows = ch.querySelectorAll('.ch-info .ch-row');
+          [0, 1].forEach((i) => rows[i] && (rows[i].style.display = 'none'));
+          ch.classList.add('chart-compact');
+        }
+      }
+    });
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Không tạo được ảnh'))), 'image/png')
+    );
+  }
+
+  function downloadBlob(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  const imgName = (suffix) => `que-luc-hao-${state.current.rec.t.replace(/[:T]/g, '-')}${suffix || ''}.png`;
+
+  // Sao chép ảnh quẻ (bản gọn) vào bộ nhớ tạm; trình duyệt không hỗ trợ thì tải ảnh về
+  function copyChartImage() {
+    if (!state.current) return;
+    const btn = $('#btnCopyImg');
+    btn.disabled = true;
+    const name = imgName('-gon');
+    const blobP = renderChartBlob(true);
+    // ClipboardItem nhận Promise ngay trong lúc bấm (cần cho Safari)
+    let clipP;
+    try {
+      if (!(navigator.clipboard && navigator.clipboard.write && window.ClipboardItem && window.isSecureContext)) throw new Error('no-clip');
+      clipP = navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blobP })]);
+    } catch (e) {
+      clipP = Promise.reject(e);
+    }
+    clipP
+      .then(() => toast('Đã sao chép ảnh quẻ — dán (Ctrl + V) vào Zalo, Messenger, Word…'))
+      .catch(() =>
+        blobP
+          .then((blob) => {
+            downloadBlob(blob, name);
+            toast('Trình duyệt không cho sao chép ảnh — đã tải ảnh quẻ về máy.');
+          })
+          .catch((e) =>
+            toast(window.html2canvas ? 'Tạo ảnh thất bại: ' + (e && e.message ? e.message : e) : 'Không tải được thư viện xuất ảnh (cần mạng).')
+          )
+      )
+      .finally(() => {
+        btn.disabled = false;
+      });
+  }
+
   async function exportPng() {
     if (!state.current) return;
     const btn = $('#btnPng');
     btn.disabled = true;
     try {
-      if (!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-    } catch (e) {
-      btn.disabled = false;
-      toast('Không tải được thư viện xuất ảnh (cần mạng). Có thể dùng nút In → Lưu PDF.');
-      return;
-    }
-    try {
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      const node = $('#chart');
-      const canvas = await window.html2canvas(node, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        scrollX: 0,
-        scrollY: -window.scrollY,
-        windowWidth: Math.max(window.innerWidth, 1200),
-        onclone: (doc) => {
-          const sc = doc.querySelector('.chart-scroll');
-          if (sc) sc.style.overflow = 'visible';
-          const ch = doc.querySelector('#chart');
-          if (ch) {
-            ch.style.zoom = '';
-            ch.classList.remove('ins-on');
-            ch.querySelectorAll('.ins-svg').forEach((n) => n.remove());
-            ch.querySelectorAll('.ins-focus, .ins-rel, .ins-active').forEach((n) => n.classList.remove('ins-focus', 'ins-rel', 'ins-active'));
-          }
-        }
-      });
-      await new Promise((resolve) =>
-        canvas.toBlob((blob) => {
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = `que-luc-hao-${state.current.rec.t.replace(/[:T]/g, '-')}.png`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-          resolve();
-        }, 'image/png')
-      );
+      const blob = await renderChartBlob(false);
+      downloadBlob(blob, imgName());
       toast('Đã lưu ảnh lá quẻ.');
     } catch (e) {
-      toast('Xuất ảnh thất bại: ' + (e && e.message ? e.message : e));
+      toast(!window.html2canvas ? 'Không tải được thư viện xuất ảnh (cần mạng). Có thể dùng nút In → Lưu PDF.' : 'Xuất ảnh thất bại: ' + (e && e.message ? e.message : e));
     } finally {
       btn.disabled = false;
     }
@@ -687,7 +729,8 @@
 
     $('#btnPng').addEventListener('click', exportPng);
     $('#btnLink').addEventListener('click', () => copyText(location.href, 'Đã sao chép liên kết quẻ.'));
-    $('#btnText').addEventListener('click', () => state.current && copyText(R.textSummary(state.current), 'Đã sao chép nội dung quẻ.'));
+    $('#btnCopyImg').addEventListener('click', copyChartImage);
+    LH.renderChartBlob = renderChartBlob; // dùng cho kiểm thử tự động
     $('#btnPrint').addEventListener('click', () => window.print());
     $('#btnFit').addEventListener('click', () => {
       state.fit = !state.fit;
