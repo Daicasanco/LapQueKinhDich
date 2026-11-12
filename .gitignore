@@ -10,3 +10,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Trang lichngay.net lưu về để đối chiếu (có token phiên + dữ liệu cá nhân), không đưa lên repo
+temp_tuvi.html
