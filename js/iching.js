@@ -519,16 +519,31 @@
 
     const combos = [];
     TAM_HOP.forEach((g) => {
-      const have = g.branches.map(pick);
       const base = {
         el: g.el,
         cuc: ELEMENTS[g.el] + ' cục',
         relName: RELATIVES[relativeOf(g.el, main.palaceEl)]
       };
-      const activeCount = have.filter((h) => h.some((p) => p.act)).length;
-      // Cục thành khi đủ 3 chi và ít nhất 2 chi do hào động / hào biến đảm nhận
-      if (have.every((h) => h.length) && activeCount >= 2) {
-        combos.push(Object.assign({ full: true, name: 'Tam hợp ' + base.cuc, branches: g.branches, members: have.map((h) => h[0].src) }, base));
+      // Tam hợp cục chỉ thành khi chi Đế vượng (Tý, Ngọ, Mão, Dậu) là một hào ĐỘNG của quẻ chính, và:
+      //  a) Quẻ chính có ít nhất 2 chi KHÁC NHAU của cục cùng động (chỉ tính chi gốc của hào động,
+      //     chi hào biến không tính) → chi còn lại lấy từ hào động, hào biến hoặc Nhật / Nguyệt
+      //     (hào tĩnh không tính);
+      //  b) Hoặc chỉ một mình chi Đế vượng động → hai chi còn lại phải do Nhật và Nguyệt đảm nhận
+      //     (hào tĩnh, hào biến không thay được).
+      const movingOnMain = new Set(mainLines.filter((l) => l.moving && g.branches.includes(l.branch)).map((l) => l.branch));
+      let members = null;
+      if (movingOnMain.has(g.mid)) {
+        if (movingOnMain.size >= 2) {
+          members = g.branches.map((b) => (pick(b).find((p) => p.act || p.rank === 3) || {}).src);
+        } else {
+          const [x, y] = g.branches.filter((b) => b !== g.mid);
+          if ((db === x && mbr === y) || (db === y && mbr === x)) {
+            members = g.branches.map((b) => (b === g.mid ? pick(b)[0].src : b === db ? 'Nhật' : 'Nguyệt'));
+          }
+        }
+      }
+      if (members && members.every(Boolean)) {
+        combos.push(Object.assign({ full: true, name: 'Tam hợp ' + base.cuc, branches: g.branches, members }, base));
         return;
       }
       // Bán hợp: chi Đế vượng + một chi còn lại, có ít nhất một hào động / hào biến
@@ -959,20 +974,15 @@
       if (sp !== subjPos) add(res.lines[sp - 1].branch, `Độc tĩnh H${sp}: ngày / tháng ${N(res.lines[sp - 1].branch)} (manh mối phụ)`, 5, 'phụ');
     }
     if (L) {
-      const actives = [];
-      res.lines.forEach((o) => {
-        if (o.moving) {
-          actives.push(o.branch);
-          if (o.changeTo) actives.push(o.changeTo.branch);
-        }
-      });
+      // Khuyết một chi: quẻ chính đã có 2 chi của cục cùng động (trong đó có chi Đế vượng, dụng thần là
+      // một trong hai), chi thứ ba chưa có ở hào biến / Nhật / Nguyệt (hào tĩnh không tính) → chờ ngày /
+      // tháng của chi đó điền vào.
       TAM_HOP.forEach((g) => {
         if (!g.branches.includes(L.branch)) return;
         if ((res.combos || []).some((c) => c.full && c.el === g.el)) return;
-        const others = g.branches.filter((b) => b !== L.branch);
-        const present = others.filter((b) => actives.includes(b));
-        if (present.length === 1 && (L.moving || actives.includes(L.branch))) {
-          const missing = others.find((b) => !present.includes(b));
+        const movingOnMain = new Set(res.lines.filter((o) => o.moving && g.branches.includes(o.branch)).map((o) => o.branch));
+        if (movingOnMain.size === 2 && movingOnMain.has(g.mid) && movingOnMain.has(L.branch)) {
+          const missing = g.branches.find((b) => !movingOnMain.has(b));
           add(missing, `Tam hợp ${E(g.el)} cục khuyết ${N(missing)}: chờ ngày / tháng ${N(missing)}`, 5, 'phụ');
         }
       });

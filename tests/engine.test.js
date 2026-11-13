@@ -143,16 +143,67 @@ test('Quẻ lập bằng số / serial / thời gian: không có Độc phát (l
   assert.ok(!u.items.some((it) => it.reasons.some((rr) => /Độc phát|độc phát/.test(rr.t))));
   assert.equal(r.docPhat, 6); // gieo xu / tự chọn vẫn tính Độc phát
 });
-test('Bát Thuần Càn động hào 1, 5 → Tam hợp Thủy cục (Tử Tôn cục) với Thìn tĩnh', () => {
-  const x = I.analyze([9, 7, 7, 7, 9, 7], sample);
-  const full = x.combos.filter((c) => c.full);
+const fullCuc = (x) => x.combos.filter((c) => c.full);
+const dThinMao = C.getInfo({ y: 2026, m: 3, d: 7, h: 12, mi: 0, s: 0 }); // Canh Thìn / Tân Mão
+const dSuuMao = C.getInfo({ y: 2026, m: 3, d: 16, h: 12, mi: 0, s: 0 }); // Kỷ Sửu / Tân Mão
+test('Bát Thuần Càn động hào 1, 5: Thìn chỉ ở hào tĩnh → KHÔNG thành cục; ngày Thìn → Tam hợp Thủy cục (Tử Tôn cục)', () => {
+  assert.equal(fullCuc(I.analyze([9, 7, 7, 7, 9, 7], sample)).length, 0);
+  const full = fullCuc(I.analyze([9, 7, 7, 7, 9, 7], dThinMao));
   assert.equal(full.length, 1);
   assert.equal(full[0].name, 'Tam hợp Thủy cục');
   assert.equal(full[0].relName, 'Tử Tôn');
+  assert.deepEqual(full[0].members, ['H5 động', 'H1 động', 'Nhật']); // không lấy H3 Thìn tĩnh
 });
 test('Bán hợp cần chi Đế vượng và ít nhất một hào động', () => {
   assert.ok(r.combos.some((c) => !c.full && c.name === 'Bán hợp Thủy cục'));
   assert.ok(r.combos.every((c) => c.full || c.branches.some((b) => [0, 3, 6, 9].includes(b))));
+});
+test('Chỉ Đế vượng động (sinh/mộ tĩnh) chưa đủ 2 hào động → chỉ bán hợp', () => {
+  // Thủy Lôi Truân: cả Thân-Tý-Thìn trên quẻ chính nhưng chỉ Tý (H6) động
+  const x = I.analyze([7, 8, 8, 8, 7, 6], sample);
+  assert.ok(!x.combos.some((c) => c.full && c.name === 'Tam hợp Thủy cục'));
+  assert.ok(x.combos.some((c) => !c.full && c.name === 'Bán hợp Thủy cục'));
+});
+test('Bát Thuần Khôn → Tổn: Tị, Dậu động, Sửu tĩnh → Kim cục chưa thành; ngày Sửu thì thành. Mộc cục KHÔNG thành (Đế vượng Mão tĩnh)', () => {
+  const x = I.analyze([6, 6, 8, 8, 8, 6], sample);
+  assert.equal(x.main.name, 'Bát Thuần Khôn');
+  assert.equal(fullCuc(x).length, 0);
+  const full = fullCuc(I.analyze([6, 6, 8, 8, 8, 6], dSuuMao)).map((c) => c.name);
+  assert.deepEqual(full, ['Tam hợp Kim cục']); // tháng Mão nhưng Mão trên quẻ chính tĩnh → không có Mộc cục
+});
+const ukKhuyet = (u, name) => u.items.some((it) => B(it.branch) === name && it.reasons.some((x) => /khuyết/.test(x.t)));
+test('Hai chi cục cùng động (có Đế vượng), chi thứ ba từ hào biến → thành cục (Thái: Sửu, Dậu động, Dậu hóa Tị)', () => {
+  const x = I.analyze([7, 7, 7, 6, 8, 6], sample);
+  const k = fullCuc(x).find((c) => c.name === 'Tam hợp Kim cục');
+  assert.ok(k);
+  assert.deepEqual(k.members, ['biến H6', 'H6 động', 'H4 động']);
+});
+test('Thân, Tý cùng động, Nhật Thìn → Thủy cục thành; thiếu Thìn → Ứng kỳ chờ Thìn (Tỉnh)', () => {
+  assert.equal(P2(dThinMao.pillars.day), 'Canh Thìn');
+  const x = I.analyze([8, 7, 7, 6, 7, 6], dThinMao);
+  assert.deepEqual(fullCuc(x).map((c) => c.members), [['H4 động', 'H6 động', 'Nhật']]);
+  const y = I.analyze([8, 7, 7, 6, 7, 6], sample); // Hợi / Hợi: không có Thìn
+  assert.equal(fullCuc(y).length, 0);
+  assert.ok(ukKhuyet(I.ungKy(y, sample, null, 4), 'Thìn'));
+});
+test('Tý, Dậu động, Dậu hóa Thân, Nhật Thìn → KHÔNG thành Thủy cục (chi hào biến không tính là chi động)', () => {
+  const x = I.analyze([9, 8, 8, 9, 6, 9], dThinMao); // Phệ Hạp → Tỷ
+  assert.equal(x.changed.name, 'Thủy Địa Tỷ');
+  assert.equal(fullCuc(x).length, 0);
+  const y = I.analyze([9, 8, 8, 9, 6, 9], sample); // Hợi / Hợi: Tý (H1) động, chỉ có Thân ở hào biến
+  assert.ok(!ukKhuyet(I.ungKy(y, sample, null, 1), 'Thìn')); // không gợi ý chờ Thìn vì có Thìn cũng không thành cục
+});
+test('Phệ Hạp → Tỷ, ngày Sửu tháng Mão: chỉ Kim cục (Tị, Dậu động + Nhật Sửu), Thủy cục không thành', () => {
+  assert.equal(P2(dSuuMao.pillars.day) + ' / ' + P2(dSuuMao.pillars.month), 'Kỷ Sửu / Tân Mão');
+  const x = I.analyze([9, 8, 8, 9, 6, 9], dSuuMao);
+  assert.deepEqual(fullCuc(x).map((k) => [k.name, k.members]), [['Tam hợp Kim cục', ['H6 động', 'H4 động', 'Nhật']]]);
+});
+test('Chỉ Tý động, Thân Thìn tĩnh: không thành cục; Nhật Thân + Nguyệt Thìn thì thành (Truân)', () => {
+  const c = C.getInfo({ y: 2026, m: 4, d: 16, h: 12, mi: 0, s: 0 });
+  assert.equal(P2(c.pillars.day) + ' / ' + P2(c.pillars.month), 'Canh Thân / Nhâm Thìn');
+  const x = I.analyze([7, 8, 8, 8, 7, 6], c);
+  assert.deepEqual(fullCuc(x).map((k) => k.members), [['Nhật', 'H6 động', 'Nguyệt']]);
+  assert.equal(fullCuc(I.analyze([7, 8, 8, 8, 7, 6], dThinMao)).length, 0); // chỉ có Thìn từ Nhật
 });
 test('Phục thần Tài-Ngọ (Tử, bị khắc, tuần không) → vô dụng', () => {
   assert.equal(r.hidden[0].verdict.ok, false);

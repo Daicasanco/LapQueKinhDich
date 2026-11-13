@@ -631,7 +631,7 @@
     return `<section class="card dsec">
       <h3 class="sec-title">Hợp cục · Hình hại · Mộ · Phục thần</h3>
       ${rows.length ? `<div class="cb-list">${rows.join('')}</div>` : '<p class="muted">Không có hợp cục, tam hình, nhập mộ hay phục thần cần xét.</p>'}
-      <p class="hint">Tam hợp cục thành khi đủ ba chi và có ít nhất hai chi do hào động / hào biến đảm nhận (Nhật, Nguyệt, hào tĩnh có thể góp một chi). Bán hợp chỉ xét khi có chi Đế vượng (Tý, Ngọ, Mão, Dậu). Kết luận phục thần là gợi ý tổng hợp theo vượng suy, Nhật Nguyệt và phi thần.</p>
+      <p class="hint">Tam hợp cục chỉ thành khi chi Đế vượng (Tý, Ngọ, Mão, Dậu) là hào động của quẻ chính. Nếu quẻ chính có ít nhất hai chi của cục cùng động (chi hào biến không tính), chi còn lại lấy từ hào động, hào biến hoặc Nhật / Nguyệt (hào tĩnh không tính); nếu chỉ một mình chi Đế vượng động, hai chi còn lại phải là Nhật và Nguyệt. Bán hợp chỉ xét khi có chi Đế vượng. Kết luận phục thần là gợi ý tổng hợp theo vượng suy, Nhật Nguyệt và phi thần.</p>
     </section>`;
   }
 
