@@ -257,14 +257,14 @@
   function buildManual() {
     const wrap = $('#manualRows');
     let html = '';
+    // Mỗi hào: chọn Dương / Âm, tick "Động" nếu là hào động (Dương động = Lão dương O, Âm động = Lão âm X)
     for (let pos = 6; pos >= 1; pos--) {
-      html += `<div class="mrow" data-pos="${pos}"><span class="mpos">Hào ${I.LINE_NAMES[pos - 1]}</span><div class="seg" role="group" aria-label="Hào ${I.LINE_NAMES[pos - 1]}">`;
-      [7, 8, 9, 6].forEach((v) => {
-        const yang = v === 7 || v === 9;
-        const mv = v === 6 || v === 9;
-        html += `<button type="button" data-v="${v}" aria-pressed="false" title="${VALUE_NAMES[v]}">${R.lineGlyph(yang, mv, 'sm')}<span>${VALUE_NAMES[v]}</span></button>`;
-      });
-      html += '</div></div>';
+      const name = I.LINE_NAMES[pos - 1];
+      html += `<div class="mrow" data-pos="${pos}"><span class="mpos">Hào ${name}</span>` +
+        `<div class="seg" role="group" aria-label="Hào ${name}">` +
+        `<button type="button" data-yang="1" aria-pressed="false"></button>` +
+        `<button type="button" data-yang="0" aria-pressed="false"></button></div>` +
+        `<label class="mmv"><input type="checkbox" data-mv aria-label="Hào ${name} động"><span>Động</span><em></em></label></div>`;
     }
     wrap.innerHTML = html;
 
@@ -289,8 +289,18 @@
 
   function syncManual() {
     $$('#manualRows .mrow').forEach((row) => {
-      const pos = +row.dataset.pos;
-      $$('button', row).forEach((b) => b.setAttribute('aria-pressed', +b.dataset.v === state.manual[pos - 1] ? 'true' : 'false'));
+      const v = state.manual[+row.dataset.pos - 1];
+      const yang = v === 7 || v === 9;
+      const mv = v === 6 || v === 9;
+      $$('button', row).forEach((b) => {
+        const by = b.dataset.yang === '1';
+        const on = by === yang;
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.innerHTML = `${R.lineGlyph(by, on && mv, 'sm')}<span>${by ? 'Dương' : 'Âm'}</span>`;
+      });
+      $('input[data-mv]', row).checked = mv;
+      $('.mmv em', row).textContent = mv ? `(${yang ? 'O' : 'X'})` : '';
+      row.classList.toggle('mv', mv);
     });
     updateManualPreview();
   }
@@ -698,12 +708,27 @@
     $('#tossReset').addEventListener('click', resetCoins);
 
     buildManual();
+    const setLine = (pos, yang, mv) => {
+      state.manual[pos - 1] = yang ? (mv ? 9 : 7) : mv ? 6 : 8;
+    };
     $('#manualRows').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-v]');
+      const b = e.target.closest('button[data-yang]');
       if (!b) return;
       const pos = +b.closest('.mrow').dataset.pos;
-      state.manual[pos - 1] = +b.dataset.v;
+      const v = state.manual[pos - 1];
+      const yang = b.dataset.yang === '1';
+      if (yang === (v === 7 || v === 9)) return;
+      setLine(pos, yang, v === 6 || v === 9);
       $('#quickHex').value = '';
+      syncManual();
+    });
+    // Tick "Động" không đổi quẻ chủ nên giữ nguyên lựa chọn ở "Chọn nhanh quẻ chủ"
+    $('#manualRows').addEventListener('change', (e) => {
+      const cb = e.target.closest('input[data-mv]');
+      if (!cb) return;
+      const pos = +cb.closest('.mrow').dataset.pos;
+      const v = state.manual[pos - 1];
+      setLine(pos, v === 7 || v === 9, cb.checked);
       syncManual();
     });
     $('#quickHex').addEventListener('change', (e) => {
