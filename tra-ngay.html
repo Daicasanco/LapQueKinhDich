@@ -35,7 +35,8 @@
 
       <div class="field">
         <label class="label" for="quick">Nhập nhanh</label>
-        <input id="quick" type="text" autocomplete="off" spellcheck="false" placeholder="vd. ngày ất mão tháng tỵ năm bính ngọ">
+        <input id="quick" type="text" autocomplete="off" spellcheck="false" placeholder="vd. ất mão, dần, tỵ  —  hoặc: ngày ất mão tháng tỵ năm bính ngọ">
+        <p class="hint">Ngăn bằng dấu phẩy theo thứ tự <b>ngày, tháng, năm, giờ</b>: <b>ất mão, dần, tỵ</b> = ngày Ất Mão, tháng Dần, năm Tị. Bỏ trống một đoạn để bỏ qua mục đó (vd. <b>, dần, tỵ</b>). Gõ không dấu: <b>ti</b> là Tí, <b>ty</b> là Tỵ.</p>
         <p class="quick-msg" id="quickMsg" aria-live="polite"></p>
       </div>
 
@@ -63,6 +64,7 @@
             <button type="button" class="chip-btn" data-preset="10">10 năm tới</button>
             <button type="button" class="chip-btn" data-preset="60">60 năm tới</button>
             <button type="button" class="chip-btn" data-preset="pm10">±10 năm</button>
+            <button type="button" class="chip-btn" data-preset="pm60">±60 năm</button>
           </div>
         </div>
       </div>

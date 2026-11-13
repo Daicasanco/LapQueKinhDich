@@ -121,10 +121,16 @@
     });
   };
 
+  // Gõ không dấu: "ti" = Tí (Tý), "ty" = Tỵ (Tị)
+  const BARE_BRANCH = { ti: 0, ty: 5 };
+
   function lookupToken(tok, prefer) {
     const exact = uniq(ENTRIES.filter((e) => e.a === tok));
     if (exact.length === 1) return { match: exact[0] };
     const st = strip(tok);
+    if (st in BARE_BRANCH) {
+      return { match: ENTRIES.find((e) => e.type === 'branch' && e.idx === BARE_BRANCH[st]), guessed: true };
+    }
     let cands = uniq(ENTRIES.filter((e) => e.s === st));
     if (!cands.length && st.length >= 2) cands = uniq(ENTRIES.filter((e) => e.s.startsWith(st)));
     if (cands.length > 1 && prefer) {
@@ -136,12 +142,12 @@
     return null;
   }
 
-  function parseQuick(text) {
-    const res = {};
-    KINDS.forEach((K) => (res[K.k] = { stem: -1, branch: -1 }));
-    const notes = [];
-    const tokens = text.normalize('NFC').toLowerCase().split(/[^\p{L}]+/u).filter(Boolean);
-    let cur = null;
+  const tokenize = (s) => s.split(/[^\p{L}]+/u).filter(Boolean);
+
+  // Xử lý một nhóm token cho một đoạn (phân cách bởi dấu phẩy, hoặc cả câu nếu không có phẩy).
+  // defaultTarget: mục mặc định của đoạn; từ khóa "ngày/tháng/năm/giờ" trong đoạn vẫn ghi đè.
+  function parseSegment(res, tokens, defaultTarget, notes) {
+    let cur = defaultTarget;
     tokens.forEach((tok) => {
       const kw = KEYWORDS[strip(tok)];
       if (kw) {
@@ -163,6 +169,28 @@
       t[r.match.type] = r.match.idx;
       if (r.guessed) notes.push(`hiểu “${tok}” là ${nameOf(r.match)}`);
     });
+  }
+
+  function parseQuick(text) {
+    const res = {};
+    KINDS.forEach((K) => (res[K.k] = { stem: -1, branch: -1 }));
+    const notes = [];
+    const norm = text.normalize('NFC').toLowerCase();
+    if (norm.includes(',')) {
+      // Có dấu phẩy: mỗi đoạn ứng với ngày, tháng, năm, giờ theo thứ tự.
+      norm.split(',').forEach((seg, i) => {
+        const toks = tokenize(seg);
+        if (!toks.length) return; // đoạn trống → bỏ qua mục đó
+        if (i >= KINDS.length) {
+          notes.push(`bỏ qua “${seg.trim()}” (chỉ nhận ngày, tháng, năm, giờ)`);
+          return;
+        }
+        parseSegment(res, toks, KINDS[i].k, notes);
+      });
+    } else {
+      // Không có phẩy: mặc định là ngày, dẫn hướng bằng từ khóa.
+      parseSegment(res, tokenize(norm), 'day', notes);
+    }
     return { res, notes };
   }
 
@@ -207,9 +235,10 @@
     if (p === 'year') {
       a = { y: t.y, m: 1, d: 1 };
       b = { y: t.y, m: 12, d: 31 };
-    } else if (p === 'pm10') {
-      a = addYears(t, -10);
-      b = addYears(t, 10);
+    } else if (/^pm\d+$/.test(p)) {
+      const n = +p.slice(2);
+      a = addYears(t, -n);
+      b = addYears(t, n);
     } else {
       b = addYears(t, +p);
     }
